@@ -69,7 +69,7 @@ class Program
 
             foreach (var item in number)
             {
-                string revKey = new string(item.Key.ToCharArray().Reverse().ToArray());
+                var revKey = new string(item.Key.ToCharArray().Reverse().ToArray());
                 int x = sRev.IndexOf(revKey);
                 if (x > -1)
                 {
@@ -92,11 +92,8 @@ class Program
             }
 
 
-
             string value = $"{fn}{ln}";
-
             sum += Convert.ToInt32(value);
-
         }
 
         Console.WriteLine(sum);
