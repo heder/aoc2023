@@ -57,7 +57,6 @@
                     cubeCount.Count = Convert.ToInt32(split4[0]);
 
                     draw.CubeCount.Add(cubeCount);
-
                 }
 
                 game.Draw.Add(draw);
