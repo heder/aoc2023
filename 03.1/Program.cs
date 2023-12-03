@@ -17,7 +17,6 @@
 
         yMax = lines.Length;
         xMax = lines[0].Length;
-
         world = new WorldTile[xMax, yMax];
 
         for (int y = 0; y < yMax; y++)
@@ -30,7 +29,6 @@
 
             }
         }
-
 
         for (int y = 0; y < yMax; y++)
         {

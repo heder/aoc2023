@@ -8,7 +8,7 @@
     }
 
 
-    static Dictionary<int, List<int>> gears = new Dictionary<int, List<int>>();
+    static Dictionary<int, List<int>> gears = [];
     static List<int> ratios = new List<int>();
 
     static int yMax;
@@ -36,7 +36,6 @@
                 id++;
             }
         }
-
 
         for (int y = 0; y < yMax; y++)
         {
