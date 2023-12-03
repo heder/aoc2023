@@ -1,46 +1,83 @@
 ﻿class Program
 {
-    static readonly Dictionary<char, int> priorities = new();
+    class WorldTile
+    {
+        public char Character { get; set; }
+        public bool Handled { get; set; }
+    }
+
+    static int yMax;
+    static int xMax;
+    static WorldTile[,] world;
+    static List<int> partNos = [];
 
     static void Main()
     {
-        int i = 1;
-        for (char letter = 'a'; letter <= 'z'; letter++)
-        {
-            priorities.Add(letter, i);
-            i++;
-        }
-        for (char letter = 'A'; letter <= 'Z'; letter++)
-        {
-            priorities.Add(letter, i);
-            i++;
-        }
+        string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        var lines = File.ReadLines("in.txt").ToArray();
+        yMax = lines.Length;
+        xMax = lines[0].Length;
 
-        var rucksacks = new List<Rucksack>();
-        foreach (var item in lines)
+        world = new WorldTile[xMax, yMax];
+
+        for (int y = 0; y < yMax; y++)
         {
-            rucksacks.Add(new Rucksack(item));
+            for (int x = 0; x < xMax; x++)
+            {
+                world[x,y] = new WorldTile();   
+                world[x, y].Character = lines[y][x];
+                world[x, y].Handled = false;
+
+            }
         }
 
-        var x = rucksacks.Sum(f => f.Prio);
 
-        Console.WriteLine(x);
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                if (char.IsDigit(world[x, y].Character) == false && world[x, y].Character != '.')
+                {
+                    FindPartNo(x, y);
+                }
+            }
+        }
+
+        int sum = partNos.Sum();
+
+        Console.WriteLine(sum);
         Console.ReadKey();
     }
 
-    class Rucksack
-    {
-        public Rucksack(string content)
-        {
-            string a = content[..(content.Length / 2)];
-            string b = content[(content.Length / 2)..];
 
-            var common = a.Intersect(b);
-            Prio = Program.priorities[common.Single()];
+    static void FindPartNo(int x, int y)
+    {
+        if (char.IsDigit(world[x - 1, y - 1].Character) && world[x - 1, y - 1].Handled == false) { SpoolPartNo(x - 1, y - 1);}
+        if (char.IsDigit(world[x, y - 1].Character) && world[x, y - 1].Handled == false) { SpoolPartNo(x, y - 1); }
+        if (char.IsDigit(world[x + 1, y - 1].Character) && world[x + 1, y - 1].Handled == false) { SpoolPartNo(x + 1, y - 1); }
+        if (char.IsDigit(world[x - 1, y].Character) && world[x - 1, y].Handled == false) { SpoolPartNo(x - 1, y);  }
+        if (char.IsDigit(world[x + 1, y].Character) && world[x + 1, y].Handled == false) { SpoolPartNo(x + 1, y); }
+        if (char.IsDigit(world[x - 1, y + 1].Character) && world[x - 1, y + 1].Handled == false) { SpoolPartNo(x - 1, y + 1); }
+        if (char.IsDigit(world[x, y + 1].Character) && world[x, y + 1].Handled == false) { SpoolPartNo(x, y + 1); }
+        if (char.IsDigit(world[x + 1, y + 1].Character) && world[x + 1, y + 1].Handled == false) { SpoolPartNo(x + 1, y + 1); }
+    }
+
+
+    static void SpoolPartNo(int x, int y)
+    {
+        while (x > 0 && char.IsDigit(world[x - 1, y].Character) == true)
+        {
+            x--;
         }
 
-        public int Prio { get; set; }
+        string partNo = "";
+        while (x < xMax && char.IsDigit(world[x, y].Character) == true)
+        {
+            partNo += world[x, y].Character;
+            world[x,y].Handled = true;
+            x++;
+        }
+
+        partNos.Add(Convert.ToInt32(partNo));
     }
 }
