@@ -5,9 +5,8 @@
         public int CardId { get; set; }
         public List<int> WinningNumbers { get; set; } = [];
         public List<int> DrawnNumbers { get; set; } = [];
+        public int Instances { get; set; } = 1;
     }
-
-
 
     static void Main()
     {
@@ -44,17 +43,18 @@
             cards.Add(c);
         }
 
-        int worth = 0;
-        foreach (var card in cards)
+        for (int i = 0; i < cards.Count; i++)
         {
+            var card = cards[i];
             var wins = card.WinningNumbers.Intersect(card.DrawnNumbers).Count();
-            var value = Convert.ToInt32(Math.Pow(2, wins - 1));
-            worth += value;
+
+            for (int j = i + 1; j < i + 1 + wins; j++)
+            {
+                cards[j].Instances += card.Instances;
+            }
         }
 
-
-
-        Console.WriteLine(worth);
+        Console.WriteLine(cards.Sum(f => f.Instances));
         Console.ReadKey();
     }
 }

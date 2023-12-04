@@ -7,8 +7,6 @@
         public List<int> DrawnNumbers { get; set; } = [];
     }
 
-
-
     static void Main()
     {
         var cards = new List<Card>();
@@ -51,8 +49,6 @@
             var value = Convert.ToInt32(Math.Pow(2, wins - 1));
             worth += value;
         }
-
-
           
         Console.WriteLine(worth);
         Console.ReadKey();
