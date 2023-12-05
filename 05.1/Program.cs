@@ -1,11 +1,8 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-class Program
+﻿class Program
 {
     class Seed
     {
         public long SeedId { get; set; }
-
         public long SoilId { get; set; }
         public long FertilizerId { get; set; }
         public long WaterId { get; set; }
@@ -43,7 +40,7 @@ class Program
             switch (lines[i])
             {
                 case "seed-to-soil map:":
-                     currentMap = seedToSoil;
+                    currentMap = seedToSoil;
                     break;
 
                 case "soil-to-fertilizer map:":
@@ -76,11 +73,6 @@ class Program
 
             i++;
 
-            //if (i > (lines.Length - 1))
-            //{
-            //    break;
-            //}
-
             while (i < lines.Length && lines[i] != "")
             {
                 var s = lines[i].Split(' ').Where(f => f.Trim() != "").Select(f => Convert.ToInt64(f)).ToList();
@@ -90,7 +82,6 @@ class Program
         }
 
         foreach (var seed in seeds)
-
         {
             seed.SoilId = Process(seed.SeedId, seedToSoil);
             seed.FertilizerId = Process(seed.SoilId, soilToFertilizer);
@@ -119,6 +110,4 @@ class Program
         Console.WriteLine(min);
         Console.ReadKey();
     }
-
-
 }

@@ -1,13 +1,9 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-class Program
+﻿class Program
 {
     class Seed
     {
         public long SeedId { get; set; }
-
         public long SeedIdLast { get; set; }
-
         public long SoilId { get; set; }
         public long FertilizerId { get; set; }
         public long WaterId { get; set; }
@@ -132,6 +128,4 @@ class Program
         Console.WriteLine(min);
         Console.ReadKey();
     }
-
-
 }
