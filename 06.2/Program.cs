@@ -1,16 +1,32 @@
 ﻿class Program
 {
+    class Race
+    {
+        public long Time { get; set; }
+        public long Record { get; set; }
+        public long WaysToWin { get; set; }
+    }
+
     static void Main()
     {
-        var line = File.ReadAllText("in.txt").ToArray();
+        var lines = File.ReadLines("in.txt").ToArray();
 
-        for (int i = 0; i < line.Length; i++)
+        var times = Convert.ToInt64(lines[0].Replace(" ", "").Split(':')[1]);
+        var records = Convert.ToInt64(lines[1].Replace(" ", "").Split(':')[1]);
+
+        var race = new Race() { Time = times, Record = records };
+
+        for (long i = 0; i <= race.Time; i++)
         {
-            if (line[i..].Take(14).Distinct().Count() == 14)
+            long length = (race.Time - i) * i;
+
+            if (length > race.Record)
             {
-                Console.WriteLine(i + 14);
-                Console.ReadKey();
+                race.WaysToWin++;
             }
         }
+
+        Console.WriteLine(race.WaysToWin);
+        Console.ReadKey();
     }
 }
