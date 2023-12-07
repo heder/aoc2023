@@ -1,6 +1,5 @@
 ﻿class Program
 {
-
     static Dictionary<char, char> valuemap = new Dictionary<char, char>()
     {
         { '2', 'A' },
@@ -18,8 +17,6 @@
         { 'A', 'M' }
     };
 
-
-
     class Hand
     {
         public string Cards { get; set; }
@@ -34,7 +31,7 @@
         {
             var g = Cards.GroupBy(x => x).ToDictionary(g => g.Key, g => g.ToList());
 
-            if (g.Count == 1 && g.Values.Count == 5) // 5
+            if (g.Count == 1 && g.Values.Where(f => f.Count == 5).Count() == 1) // 5
             {
                 HandValue = 7;
             }
@@ -54,13 +51,17 @@
             {
                 HandValue = 3;
             }
-            else if (g.Count == 3 && g.Values.Where(f => f.Count == 2).Count() == 1 && g.Values.Where(f => f.Count == 1).Count() == 3)
+            else if (g.Count == 4 && g.Values.Where(f => f.Count == 2).Count() == 1 && g.Values.Where(f => f.Count == 1).Count() == 3)
             {
                 HandValue = 2;
             }
             else if (Cards.Distinct().Count() == 5)
             {
                 HandValue = 1;
+            }
+            else
+            {
+                throw new Exception("Unknown hand");
             }
         }
 
@@ -101,4 +102,5 @@
         var sum = hands.Sum(f => f.BidValue * f.Rank);
         Console.WriteLine(sum);
         Console.ReadKey();
+    }
 }

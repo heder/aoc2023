@@ -1,139 +1,171 @@
 ﻿class Program
 {
-    static FsEntry Root = new FsEntry(null, "/") { IsRoot = true, IsDir = true };
-    static FsEntry CurrentDir = Root;
-
-    static void Main()
+    static Dictionary<char, char> valuemap = new Dictionary<char, char>()
     {
-        string[] lines = File.ReadAllLines("in.txt").ToArray();
+        { 'J', 'A' },
+        { '2', 'B' },
+        { '3', 'C' },
+        { '4', 'D' },
+        { '5', 'E' },
+        { '6', 'F' },
+        { '7', 'G' },
+        { '8', 'H' },
+        { '9', 'I' },
+        { 'T', 'J' },
+        { 'Q', 'K' },
+        { 'K', 'L' },
+        { 'A', 'M' }
+    };
 
-        int i = 0;
-        while (i < lines.Length)
+    static Dictionary<int, char> valuemap2 = new Dictionary<int, char>()
+    {
+        { 0, '2' },
+        { 1, '3' },
+        { 2, '4' },
+        { 3, '5' },
+        { 4, '6' },
+        { 5, '7' },
+        { 6, '8' },
+        { 7, '9' },
+        { 8, 'T' },
+        { 9, 'Q' },
+        { 10, 'K' },
+        { 11, 'A' }
+    };
+
+    class Hand
+    {
+        public string Cards { get; set; }
+        public string SortableCards { get; set; }
+        public int HandValue { get; set; }
+        public int BidValue { get; set; }
+        public int Rank { get; set; }
+
+        private List<char[]> replacemap;
+
+        void GeneratePermutations(char[] toPermute, int pos)
         {
-            var tokens = lines[i].Split(' ');
+            if (pos >= toPermute.Length) { return  ; }
 
-            if (tokens[0] == "$")
+            for (int i = 0; i < valuemap2.Count; i++)
             {
-                switch (tokens[1])
+                toPermute[pos] = valuemap2[i];
+
+                if (pos == toPermute.Length - 1)
                 {
-                    case "cd":
-                        switch (tokens[2])
-                        {
-                            case "/":
-                                CurrentDir = Root;
-                                break;
+                    char[] copy = new char[toPermute.Length];
+                    Array.Copy(toPermute, copy, toPermute.Length);
+                    replacemap.Add(copy);
+                }
 
-                            case "..":
-                                CurrentDir = CurrentDir.Parent;
-                                break;
+                GeneratePermutations(toPermute, pos + 1);
+            }
+        }
 
-                            default:
-                                CurrentDir = CurrentDir.FsObjects.Single(f => f.Name == tokens[2]);
-                                break;
-                        }
-                        break;
-
-                    case "ls":
-
-                        i++;
-
-                        while (i < lines.Length && lines[i].StartsWith("$") == false)
-                        {
-                            var fstokens = lines[i].Split(' ');
-
-                            switch (fstokens[0])
-                            {
-                                case "dir":
-                                    CurrentDir.FsObjects.Add(new FsEntry(CurrentDir, fstokens[1]) { IsDir = true });
-                                    break;
-
-                                default:
-                                    CurrentDir.FsObjects.Add(new FsEntry(CurrentDir, fstokens[1]) { IsDir = false, Size = Convert.ToInt32(fstokens[0]) });
-                                    break;
-                            }
-
-
-                            i++;
-                        }
-                        continue;
-
-                    default:
-                        throw new Exception("Unknown command");
+        public void EvaluateHand()
+        {
+            var jokerpositions = new List<int>();
+            for (int i = 0; i < Cards.Length; i++)
+            {
+                if (Cards[i] == 'J')
+                {
+                    jokerpositions.Add(i);
                 }
             }
 
-            i++;
-        }
+            replacemap = new List<char[]>();
 
-        int totalsize = TraverseFilesystem(Root, 1);
-        dirSizes.Add(totalsize);
-
-        int totalAvailable = 70000000;
-        int neededAvailable = 30000000;
-        int freeSpace = totalAvailable - totalsize;
-        int needed = neededAvailable - freeSpace;
-
-        var sortedDirs = dirSizes.OrderBy(f => f);
-
-        foreach (var item in sortedDirs)
-        {
-            if (item >= needed)
+            char[] permutation = new char[jokerpositions.Count];
+            if (jokerpositions.Count > 0)
             {
-                Console.WriteLine(item);
+                GeneratePermutations(permutation, 0);
+            }
+
+            if (replacemap.Count == 0) replacemap.Add(new char[1]);
+
+            for (int i = 0; i < replacemap.Count; i++)
+            {
+                for (int j = 0; j < jokerpositions.Count; j++)
+                {
+                    int pos = jokerpositions[j];
+                    var ca = Cards.ToCharArray();
+                    ca[pos] = replacemap[i][j];
+                    Cards = new string(ca);
+                }
+
+                var g = Cards.GroupBy(x => x).ToDictionary(g => g.Key, g => g.ToList());
+
+                if (g.Count == 1 && g.Values.Where(f => f.Count == 5).Count() == 1)
+                {
+                    HandValue = Math.Max(HandValue, 7);
+                }
+                else if (g.Count == 2 && g.Values.Where(f => f.Count == 4).Count() == 1 && g.Values.Where(f => f.Count == 1).Count() == 1)
+                {
+                    HandValue = Math.Max(HandValue, 6);
+                }
+                else if (g.Count == 2 && g.Values.Where(f => f.Count == 3).Count() == 1 && g.Values.Where(f => f.Count == 2).Count() == 1)
+                {
+                    HandValue = Math.Max(HandValue, 5);
+                }
+                else if (g.Count == 3 && g.Values.Where(f => f.Count == 3).Count() == 1 && g.Values.Where(f => f.Count == 1).Count() == 2)
+                {
+                    HandValue = Math.Max(HandValue, 4);
+                }
+                else if (g.Count == 3 && g.Values.Where(f => f.Count == 2).Count() == 2 && g.Values.Where(f => f.Count == 1).Count() == 1)
+                {
+                    HandValue = Math.Max(HandValue, 3);
+                }
+                else if (g.Count == 4 && g.Values.Where(f => f.Count == 2).Count() == 1 && g.Values.Where(f => f.Count == 1).Count() == 3)
+                {
+                    HandValue = Math.Max(HandValue, 2);
+                }
+                else if (Cards.Distinct().Count() == 5)
+                {
+                    HandValue = Math.Max(HandValue, 1);
+                }
+                else
+                {
+                    throw new Exception("Unknown hand");
+                }
             }
         }
 
-        Console.WriteLine(totalsize);
-        Console.WriteLine(d);
+        public void GenerateSortableCards()
+        {
+            for (int i = 0; i < Cards.Length; i++)
+            {
+                SortableCards += valuemap[Cards[i]];
+            }
+        }
+    }
+
+
+
+    static void Main()
+    {
+        string[] lines = File.ReadAllLines("in.txt");
+        List<Hand> hands = [];
+
+        foreach (string line in lines)
+        {
+            var split = line.Split(' ');
+
+            var h = new Hand() { Cards = split[0].Trim(), BidValue = Convert.ToInt32(split[1].Trim()) };
+            h.GenerateSortableCards();
+            h.EvaluateHand();
+            hands.Add(h);
+        }
+
+        hands = hands.OrderBy(f => f.HandValue).ThenBy(f => f.SortableCards).ToList();
+
+        int rank = 1;
+        foreach (var hand in hands)
+        {
+            hand.Rank = rank++;
+        }
+
+        var sum = hands.Sum(f => f.BidValue * f.Rank);
+        Console.WriteLine(sum);
         Console.ReadKey();
-    }
-
-
-    static List<int> dirSizes = new List<int>();
-    static int d = 0;
-
-    private static int TraverseFilesystem(FsEntry e, int level)
-    {
-        Console.WriteLine($"{new string('-', level)} {e.Name} (dir)");
-
-        int size = 0;
-        foreach (var item in e.FsObjects)
-        {
-            if (item.IsDir)
-            {
-                int dirsize = TraverseFilesystem(item, level + 1);
-
-                dirSizes.Add(dirsize);
-
-                size += dirsize;
-            }
-            else
-            {
-                Console.WriteLine($"{new string('-', level + 1)} {item.Name} (file, {item.Size})");
-                size += item.Size;
-            }
-        }
-
-        return size;
-    }
-
-    class FsEntry
-    {
-        public FsEntry(FsEntry parent, string name)
-        {
-            Name = name;
-            FsObjects = new List<FsEntry>();
-            Parent = parent;
-        }
-
-        public FsEntry Parent { get; set; }
-
-        public string Name { get; set; }
-
-        public bool IsRoot { get; set; }
-        public bool IsDir { get; set; }
-        public int Size { get; set; }
-
-        public List<FsEntry> FsObjects { get; set; }
     }
 }
