@@ -28,6 +28,7 @@
 
         public int HandValue { get; set; }
         public int BidValue { get; set; }
+        public int Rank { get; set; }
 
         public void EvaluateHand()
         {
@@ -89,13 +90,15 @@
             hands.Add(h);
         }
 
-        hands.OrderBy(f => f.HandValue).ThenBy(f => f.SortableCards).ToList();
+        hands = hands.OrderBy(f => f.HandValue).ThenBy(f => f.SortableCards).ToList();
 
         int rank = 1;
         foreach (var hand in hands)
         {
-
+            hand.Rank = rank++;
         }
 
-
+        var sum = hands.Sum(f => f.BidValue * f.Rank);
+        Console.WriteLine(sum);
+        Console.ReadKey();
 }
