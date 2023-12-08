@@ -1,86 +1,103 @@
-﻿class Program
+﻿using MathNet.Numerics;
+
+class Program
 {
-    static int yLen;
-    static int xLen;
-    static int[,] forest;
-    static int[,] score;
+    class Node
+    {
+        public string Name;
+        public Node Left;
+        public Node Right;
+    }
+
+    static Dictionary<string, Node> nodes = new Dictionary<string, Node>();
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
+        string move = lines[0];
 
-        yLen = lines.Length;
-        xLen = lines[0].Length;
-
-        forest = new int[xLen, yLen];
-        score = new int[xLen, yLen];
-
-        for (int y = 0; y < yLen; y++)
+        for (int i = 2; i < lines.Length; i++)
         {
-            for (int x = 0; x < xLen; x++)
+            var line = lines[i];
+
+            var split1 = line.Split('=');
+            var nodename = split1[0].Trim();
+
+            var split2 = split1[1].Split(',');
+
+            var leftname = split2[0].Trim(' ', '(');
+            var rightname = split2[1].Trim(' ', ')');
+
+            Node node;
+            Node leftnode;
+            Node rightnode;
+
+            if (nodes.TryGetValue(nodename, out node) == false)
             {
-                forest[x, y] = Convert.ToInt32(lines[y][x].ToString());
+                node = new Node() { Name = nodename };
+                nodes.Add(nodename, node);
             }
+
+            if (nodes.TryGetValue(leftname, out leftnode) == false)
+            {
+                leftnode = new Node() { Name = leftname };
+                nodes.Add(leftname, leftnode);
+            }
+
+            if (nodes.TryGetValue(rightname, out rightnode) == false)
+            {
+                rightnode = new Node() { Name = rightname };
+                nodes.Add(rightname, rightnode);
+            }
+
+            node.Left = leftnode;
+            node.Right = rightnode;
         }
 
-        for (int y = 1; y < yLen - 1; y++)
-        {
-            for (int x = 1; x < xLen - 1; x++)
-            {
-                score[x, y] = IsVisible(x, y);
-                Console.WriteLine(score[x, y]);
-            }
-        }
+        List<Node> currentNodes = nodes.Values.Where(f => f.Name.EndsWith('A')).ToList();
+        long n = 0;
 
-        var max = score.Cast<int>().Max();
-        Console.WriteLine(max);
+        // Upphittade cyklerna i varje path från findings i loopen nedan.
+        Console.WriteLine(Euclid.LeastCommonMultiple(14999, 16697, 17263, 20093, 20659, 22357));
         Console.ReadKey();
+
+        while (true)
+        {
+            for (int i = 0; i < move.Length; i++)
+            {
+                for (int j = 0; j < currentNodes.Count; j++)
+                {
+                    if (move[i] == 'L')
+                    {
+                        currentNodes[j] = currentNodes[j].Left;
+                    }
+                    else
+                    {
+                        currentNodes[j] = currentNodes[j].Right;
+                    }
+
+                    if (currentNodes[j].Name.EndsWith('Z')) // Hitta cykler i graferna
+                    {
+                        Console.WriteLine(j + ": is at " + currentNodes[j].Name + "after " + (n + 1) + " iterations");
+                        Console.ReadKey();
+
+                        // Varje path roterar till samma nod efter 14999 16697 17263 20093 20659 22357 iterationer
+                        // Beräkna LCM av alla cykler för att hitta när de alignar samtidigt.
+                    }
+                }
+
+                n++;
+
+                if (n % 10000000 == 0) Console.WriteLine(n);
+
+                if (currentNodes.All(f => f.Name.EndsWith('Z')))
+                {
+                    Console.WriteLine(n);
+                    Console.ReadKey();
+                }
+            }
+        }
+
     }
 
-
-    private static int IsVisible(int xin, int yin)
-    {
-        int treeHeight = forest[xin, yin];
-
-        var uVec = new List<int>();
-        var dVec = new List<int>();
-        var lVec = new List<int>();
-        var rVec = new List<int>();
-
-        // (Y-) (up)
-        for (int y = yin - 1; y >= 0; y--)
-        {
-            uVec.Add(forest[xin, y]);
-        }
-
-        // Y+ (down)
-        for (int y = yin + 1; y < yLen; y++)
-        {
-            dVec.Add(forest[xin, y]);
-        }
-
-        // X- (left)
-        for (int x = xin - 1; x >= 0; x--)
-        {
-            lVec.Add(forest[x, yin]);
-        }
-
-        // X+ (right)
-        for (int x = xin + 1; x < xLen; x++)
-        {
-            rVec.Add(forest[x, yin]);
-        }
-
-        var u = uVec.TakeWhile(f => f < treeHeight).Count();
-        var l = lVec.TakeWhile(f => f < treeHeight).Count();
-        var r = rVec.TakeWhile(f => f < treeHeight).Count();
-        var d = dVec.TakeWhile(f => f < treeHeight).Count();
-
-        if (u != uVec.Count) u++;
-        if (l != lVec.Count) l++;
-        if (r != rVec.Count) r++;
-        if (d != dVec.Count) d++;
-
-        return u * l * r * d;
-    }
 }

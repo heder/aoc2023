@@ -1,83 +1,82 @@
 ﻿class Program
 {
-    static int yLen;
-    static int xLen;
-    static int[,] forest;
+    class Node
+    {
+        public string Name;
+        public Node Left;
+        public Node Right;
+    }
+
+    static Dictionary<string, Node> nodes = new Dictionary<string, Node>();
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
+        string move = lines[0];
 
-        yLen = lines.Length;
-        xLen = lines[0].Length;
-
-        forest = new int[xLen, yLen];
-        int noVisible = (lines.Length * 2) + ((lines[0].Length - 2) * 2);
-
-        for (int y = 0; y < yLen; y++)
+        for (int i = 2; i < lines.Length; i++)
         {
-            for (int x = 0; x < xLen; x++)
+            var line = lines[i];
+
+            var split1 = line.Split('=');
+            var nodename = split1[0].Trim();
+
+            var split2 = split1[1].Split(',');
+
+            var leftname = split2[0].Trim(' ', '(');
+            var rightname = split2[1].Trim(' ', ')');
+
+            Node node;
+            Node leftnode;
+            Node rightnode;
+
+            if (nodes.TryGetValue(nodename, out node) == false)
             {
-                forest[x, y] = Convert.ToInt32(lines[y][x].ToString());
+                node = new Node() { Name = nodename };
+                nodes.Add(nodename, node);
+            }
+
+            if (nodes.TryGetValue(leftname, out leftnode) == false)
+            {
+                leftnode = new Node() { Name = leftname };
+                nodes.Add(leftname, leftnode);
+            }
+
+            if (nodes.TryGetValue(rightname, out rightnode) == false)
+            {
+                rightnode = new Node() { Name = rightname };
+                nodes.Add(rightname, rightnode);
+            }
+
+            node.Left = leftnode;
+            node.Right = rightnode;
+        }
+
+        Node currentNode = nodes["AAA"];
+        int n = 0;
+        while (true)
+        {
+            for (int i = 0; i < move.Length; i++)
+            {
+                if (move[i] == 'L')
+                {
+                    currentNode = currentNode.Left;
+                }
+                else
+                {
+                    currentNode = currentNode.Right;
+                }
+
+                n++;
+
+                if (currentNode.Name == "ZZZ")
+                {
+                    Console.WriteLine(n);
+                    Console.ReadKey();
+                }
             }
         }
 
-        for (int y = 1; y < yLen - 1; y++)
-        {
-            for (int x = 1; x < xLen - 1; x++)
-            {
-                noVisible += IsVisible(x, y);
-            }
-        }
-
-        Console.WriteLine(noVisible);
-        Console.ReadKey();
     }
 
-
-    private static int IsVisible(int xin, int yin)
-    {
-        int treeHeight = forest[xin, yin];
-
-        var uVec = new List<int>();
-        var dVec = new List<int>();
-        var lVec = new List<int>();
-        var rVec = new List<int>();
-
-        // (Y-) (up)
-        for (int y = yin - 1; y >= 0; y--)
-        {
-            uVec.Add(forest[xin, y]);
-        }
-
-        // Y+ (down)
-        for (int y = yin + 1; y < yLen; y++)
-        {
-            dVec.Add(forest[xin, y]);
-        }
-
-        // X- (left)
-        for (int x = xin - 1; x >= 0; x--)
-        {
-            lVec.Add(forest[x, yin]);
-        }
-
-        // X+ (right)
-        for (int x = xin + 1; x < xLen; x++)
-        {
-            rVec.Add(forest[x, yin]);
-        }
-
-        if (uVec.All(f => f < treeHeight) ||
-            dVec.All(f => f < treeHeight) ||
-            lVec.All(f => f < treeHeight) ||
-            rVec.All(f => f < treeHeight))
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
 }
