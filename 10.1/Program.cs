@@ -1,94 +1,184 @@
 ﻿class Program
 {
-    static int debugVal;
+    public enum Direction
+    {
+        North = 1,
+        West = 2,
+        East = 3,
+        South = 4
+    }
+
+    class Tile
+    {
+        public List<Direction> Connections = [];
+        public List<Direction> ValidatedConnections = [];
+        public List<Tile> ValidatedTiles = [];
+
+        public List<int> Distances = [];
+        public int Distance { get; set; } = int.MaxValue;
+        public char Character { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+
+        public void GenerateConnectors()
+        {
+            switch (Character)
+            {
+                case '|':
+                    Connections.Add(Direction.North);
+                    Connections.Add(Direction.South);
+                    break;
+
+                case '-':
+                    Connections.Add(Direction.West);
+                    Connections.Add(Direction.East);
+                    break;
+
+                case 'L':
+                    Connections.Add(Direction.North);
+                    Connections.Add(Direction.East);
+                    break;
+
+                case 'J':
+                    Connections.Add(Direction.North);
+                    Connections.Add(Direction.West);
+                    break;
+
+                case '7':
+                    Connections.Add(Direction.West);
+                    Connections.Add(Direction.South);
+                    break;
+
+                case 'F':
+                    Connections.Add(Direction.East);
+                    Connections.Add(Direction.South);
+                    break;
+
+                case '.':
+                    break;
+
+                case 'S':
+                    Connections.Add(Direction.North);
+                    Connections.Add(Direction.West);
+                    Connections.Add(Direction.East);
+                    Connections.Add(Direction.South);
+                    break;
+            }
+        }
+
+        public void ValidateConnectors()
+        {
+            foreach (var connection in Connections)
+            {
+                switch (connection)
+                {
+                    case Direction.North:
+                        if (Y > 0 && world[X, Y - 1].Connections.Contains(Direction.South))
+                        {
+                            ValidatedConnections.Add(connection);
+                            ValidatedTiles.Add(world[X, Y - 1]);
+                        }
+                        break;
+
+                    case Direction.West:
+                        if (X > 0 && world[X - 1, Y].Connections.Contains(Direction.East))
+                        {
+                            ValidatedConnections.Add(connection);
+                            ValidatedTiles.Add(world[X - 1, Y]);
+                        }
+                        break;
+
+                    case Direction.East:
+                        if (X < xMax - 1 && world[X + 1, Y].Connections.Contains(Direction.West))
+                        {
+                            ValidatedConnections.Add(connection);
+                            ValidatedTiles.Add(world[X + 1, Y]);
+                        }
+                        break;
+
+                    case Direction.South:
+                        if (Y < yMax - 1 && world[X, Y + 1].Connections.Contains(Direction.North))
+                        {
+                            ValidatedConnections.Add(connection);
+                            ValidatedTiles.Add(world[X, Y + 1]);
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+
+    static int yMax;
+    static int xMax;
+    static Tile[,] world;
+    static Tile startTile;
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        var ops = new List<Op>();
-        foreach (var item in lines)
+        yMax = lines.Length;
+        xMax = lines[0].Length;
+        world = new Tile[xMax, yMax];
+
+        for (int y = 0; y < yMax; y++)
         {
-            var tokens = item.Split(' ');
-
-            switch (tokens[0])
+            for (int x = 0; x < xMax; x++)
             {
-                case "addx":
-                    ops.Add(new Op() { Mnemonic = "addx", Operand = Convert.ToInt32(tokens[1]), Ticks = 2 });
-                    break;
+                var t = new Tile();
+                t.Character = lines[y][x];
+                t.X = x;
+                t.Y = y;
+                t.Character = lines[y][x];
+                t.GenerateConnectors();
 
-                case "noop":
-                    ops.Add(new Op() { Mnemonic = "nop", Ticks = 1 });
-                    break;
+                world[x, y] = t;
 
-                default:
-                    throw new Exception("");
+                if (world[x, y].Character == 'S')
+                {
+                    startTile = t;
+                    startTile.Distance = 0;
+                }
             }
         }
 
-        var cpu = new CPU();
-
-        foreach (var item in ops)
+        for (int y = 0; y < yMax; y++)
         {
-            cpu.Execute(item);
+            for (int x = 0; x < xMax; x++)
+            {
+                world[x, y].ValidateConnectors();
+            }
         }
 
-        Console.WriteLine(debugVal);
+        foreach (var currentTile in startTile.ValidatedTiles)
+        {
+            int distance = 1;
+            var nextTile = currentTile;
+            while (true)
+            {
+                nextTile.Distance = distance;
+
+                nextTile = nextTile.ValidatedTiles.FirstOrDefault(f => f.Distance > distance + 1 && f.Character != 'S');
+                if (nextTile == null) break;
+
+                distance++;                
+            }
+        }
+
+        int highest = 0;
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                if (world[x, y].Character != '.' && world[x,y].Distance != int.MaxValue)
+                {
+                    highest = Math.Max(highest, world[x, y].Distance);
+                }
+            }
+        }
+
+        Console.WriteLine(highest);
         Console.ReadKey();
     }
-
-
-
-    class CPU
-    {
-        public int Clock { get; set; }
-
-        public int X { get; set; } = 1;
-
-        public void Execute(Op o)
-        {
-            while (o.Ticks > 0)
-            {
-                Clock++;
-
-                // If clock = debugger breakpoints
-                if (Clock == 20 || (Clock - 20) % 40 == 0)
-                {
-                    var val = Clock * X;
-                    debugVal += val;
-                }
-                //
-
-                o.Ticks--;
-
-                if (o.Ticks == 0) // Last microop, do work
-                {
-                    // Do the work
-                    switch (o.Mnemonic)
-                    {
-                        case "addx":
-                            X += o.Operand;
-                            break;
-
-                        case "nop":
-                            break;
-
-                        default:
-                            throw new Exception("");
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    class Op
-    {
-        public string Mnemonic { get; set; }
-        public int Operand { get; set; }
-        public int Ticks { get; set; }
-
-    }
-
 }
