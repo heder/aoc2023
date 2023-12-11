@@ -3,24 +3,22 @@
     class Tile
     {
         public char Character { get; set; }
-        //public bool Handled { get; set; }
         public int GalaxyId { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
     }
 
     class GalaxyPair
     {
-        public int GalaxyA { get; set; }
-        public int GalaxyB { get; set; }
+        public Tile GalaxyA { get; set; }
+        public Tile GalaxyB { get; set; }
         public int Distance { get; set; }
     }
 
-    static List<GalaxyPair> ratios = [];
-
+    static List<GalaxyPair> galaxypairs = [];
     static int yMax;
     static int xMax;
-    //static Tile[,] world;
-
-    static List<List<Tile>> world = new List<List<Tile>>();
+    static List<List<Tile>> world = [];
 
     static void Main()
     {
@@ -38,10 +36,13 @@
             {
                 var t = new Tile();
                 t.Character = lines[y][x];
-                t.GalaxyId = id;
+
+                if (t.Character == '#')
+                {
+                    t.GalaxyId = id;
+                }
 
                 row.Add(t);
-
                 id++;
             }
 
@@ -52,77 +53,69 @@
         {
             if (world[y].All(f => f.Character == '.'))
             {
-                world.Insert(y, new List<Tile>());
-            }
+                var newRow = new List<Tile>();
+                for (int i = 0; i < xMax; i++)
+                {
+                    newRow.Add(new Tile() { Character = '.' });
+                }
 
-            //for (int x = 0; x < xMax; x++)
-            //{
-            //    world[x, y] = new Tile();
-            //    world[x, y].Character = lines[y][x];
-            //    world[x, y].GalaxyId = id;
-            //    id++;
-            //}
+                world.Insert(y, newRow);
+                yMax++;
+            }
         }
 
+        for (int x = 0; x < xMax; x++) // Expand columns
+        {
+            if (world.All(f => f[x].Character == '.'))
+            {
+                for (int i = 0; i < yMax; i++)
+                {
+                    world[i].Insert(x, new Tile() { Character = '.' });
+                    xMax++;
+                }
+            }
+        }
 
+        List<Tile> galaxies = new List<Tile>();
 
-        //for (int y = 0; y < yMax; y++)
-        //{
-        //    for (int x = 0; x < xMax; x++)
-        //    {
-        //        if (world[x, y].Character == '*')
-        //        {
-        //            FindPartNo(x, y, world[x, y].Id);
-        //        }
-        //    }
-        //}
+        // Recalc positions of galaxies
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                if (world[x][y].Character == '#')
+                {
+                    world[x][y].X = x;
+                    world[x][y].Y = y;
+                    galaxies.Add(world[x][y]);
+                }
+            }
+        }
 
-        //int sum = ratios.Sum();
-        //Console.WriteLine(sum);
+        for (int i = 0; i < galaxies.Count; i++)
+        {
+            for (int j = 0; j < galaxies.Count; j++)
+            {
+                if (i != j)
+                {
+                    if (galaxypairs.Any(f => f.GalaxyB.GalaxyId == galaxies[i].GalaxyId && f.GalaxyA.GalaxyId == galaxies[i].GalaxyId) == false)
+                    {
+                        galaxypairs.Add(new GalaxyPair() { GalaxyA = galaxies[i], GalaxyB = galaxies[j] });
+                    }
+                }
+            }
+        }
+
+        foreach (var pair in galaxypairs)
+        {
+            var xdist = Math.Abs(pair.GalaxyA.X - pair.GalaxyB.X);
+            var ydist = Math.Abs(pair.GalaxyA.Y - pair.GalaxyB.Y);
+
+            pair.Distance = xdist + ydist;
+        }
+
+        int sum = galaxypairs.Sum(f => f.Distance);
+        Console.WriteLine(sum);
         Console.ReadKey();
     }
-
-
-    //static void FindPartNo(int x, int y, int id)
-    //{
-    //    if (char.IsDigit(world[x - 1, y - 1].Character) && world[x - 1, y - 1].Handled == false) { SpoolPartNo(x - 1, y - 1, id); }
-    //    if (char.IsDigit(world[x, y - 1].Character) && world[x, y - 1].Handled == false) { SpoolPartNo(x, y - 1, id); }
-    //    if (char.IsDigit(world[x + 1, y - 1].Character) && world[x + 1, y - 1].Handled == false) { SpoolPartNo(x + 1, y - 1, id); }
-    //    if (char.IsDigit(world[x - 1, y].Character) && world[x - 1, y].Handled == false) { SpoolPartNo(x - 1, y, id); }
-    //    if (char.IsDigit(world[x + 1, y].Character) && world[x + 1, y].Handled == false) { SpoolPartNo(x + 1, y, id); }
-    //    if (char.IsDigit(world[x - 1, y + 1].Character) && world[x - 1, y + 1].Handled == false) { SpoolPartNo(x - 1, y + 1, id); }
-    //    if (char.IsDigit(world[x, y + 1].Character) && world[x, y + 1].Handled == false) { SpoolPartNo(x, y + 1, id); }
-    //    if (char.IsDigit(world[x + 1, y + 1].Character) && world[x + 1, y + 1].Handled == false) { SpoolPartNo(x + 1, y + 1, id); }
-    //}
-
-
-    //static void SpoolPartNo(int x, int y, int id)
-    //{
-    //    while (x > 0 && char.IsDigit(world[x - 1, y].Character) == true)
-    //    {
-    //        x--;
-    //    }
-
-    //    string partNo = "";
-    //    while (x < xMax && char.IsDigit(world[x, y].Character) == true)
-    //    {
-    //        partNo += world[x, y].Character;
-    //        world[x, y].Handled = true;
-    //        x++;
-    //    }
-
-    //    if (gears.ContainsKey(id))
-    //    {
-    //        gears[id].Add(Convert.ToInt32(partNo));
-    //    }
-    //    else
-    //    {
-    //        gears.Add(id, [Convert.ToInt32(partNo)]);
-    //    }
-
-    //    if (gears[id].Count == 2)
-    //    {
-    //        ratios.Add(gears[id][0] * gears[id][1]);
-    //    }
-    //}
 }
