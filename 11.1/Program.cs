@@ -1,137 +1,128 @@
-﻿using System.Collections;
-
-class Program
+﻿class Program
 {
+    class Tile
+    {
+        public char Character { get; set; }
+        //public bool Handled { get; set; }
+        public int GalaxyId { get; set; }
+    }
 
-    //static int debugVal;
+    class GalaxyPair
+    {
+        public int GalaxyA { get; set; }
+        public int GalaxyB { get; set; }
+        public int Distance { get; set; }
+    }
 
-    static Dictionary<int, Monkey> monkeys = new Dictionary<int, Monkey>();
+    static List<GalaxyPair> ratios = [];
+
+    static int yMax;
+    static int xMax;
+    //static Tile[,] world;
+
+    static List<List<Tile>> world = new List<List<Tile>>();
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        int i = 0;
-        while (i < lines.Length)
+        yMax = lines.Length;
+        xMax = lines[0].Length;
+        int id = 1;
+
+        for (int y = 0; y < yMax; y++)
         {
+            var row = new List<Tile>();
 
-            Monkey m = new Monkey();
-
-            int monkey = Convert.ToInt32(lines[i].Split(" ")[1].Trim(':'));
-            i++;
-            var items = lines[i].Split(":")[1].Split(",").Select(f => int.Parse(f)).ToList();
-            i++;
-            var operation = lines[i].Split(":")[1].Split("=")[1].Trim().Split(" ");
-            i++;
-            var test = Convert.ToInt32(lines[i].Split(":")[1].Trim().Split(" ")[2]);
-            i++;
-            var trueDest = Convert.ToInt32(lines[i].Split(':')[1].Trim().Split(" ")[3]);
-            i++;
-            var falseDest = Convert.ToInt32(lines[i].Split(':')[1].Trim().Split(" ")[3]);
-            i++;
-            i++;
-
-            m.Items = items;
-            m.Operation = operation[1];
-            m.OperandA = operation[0];
-            m.OperandB = operation[2];
-            m.DivisibleBy = test;
-            m.DestinationIfTrue = trueDest;
-            m.DestinationIfFalse = falseDest;
-
-            monkeys.Add(monkey, m);
-        }
-
-
-
-        for (int x = 0; x < 20; x++)
-        {
-            foreach (var m in monkeys)
+            for (int x = 0; x < xMax; x++)
             {
-                var monkey = m.Value;
+                var t = new Tile();
+                t.Character = lines[y][x];
+                t.GalaxyId = id;
 
-                // Inspect and increase worry level
-                monkey.Inspections += monkey.Items.Count();
-                var newList = new List<int>();
-                foreach (var item in monkey.Items)
-                {
-                    int b;
+                row.Add(t);
 
-                    if (monkey.OperandB == "old")
-                        b = item;
-                    else
-                        b = Convert.ToInt32(monkey.OperandB);
-
-                    int newVal = 0;
-                    switch (monkey.Operation)
-                    {
-                        case "+":
-                            newVal = item + b;
-                            break;
-
-                        case "*":
-                            newVal = item * b;
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                    // Divide worry level
-                    newVal = newVal /= 3;
-
-                    if (newVal % monkey.DivisibleBy == 0)
-                    {
-                        monkeys[monkey.DestinationIfTrue].Items.Add(newVal);
-                    }
-                    else
-                    {
-                        monkeys[monkey.DestinationIfFalse].Items.Add(newVal);
-                    }
-
-                  
-
-                }
-                monkey.Items.Clear();
-
-
-
+                id++;
             }
 
-            
-            DumpMonkeys();
+            world.Add(row);
         }
 
-        var top2 = monkeys.Values.OrderByDescending(f => f.Inspections).Take(2).ToArray();
+        for (int y = 0; y < yMax; y++) // Expand rows
+        {
+            if (world[y].All(f => f.Character == '.'))
+            {
+                world.Insert(y, new List<Tile>());
+            }
+
+            //for (int x = 0; x < xMax; x++)
+            //{
+            //    world[x, y] = new Tile();
+            //    world[x, y].Character = lines[y][x];
+            //    world[x, y].GalaxyId = id;
+            //    id++;
+            //}
+        }
 
 
-        Console.WriteLine(top2[0].Inspections * top2[1].Inspections);
+
+        //for (int y = 0; y < yMax; y++)
+        //{
+        //    for (int x = 0; x < xMax; x++)
+        //    {
+        //        if (world[x, y].Character == '*')
+        //        {
+        //            FindPartNo(x, y, world[x, y].Id);
+        //        }
+        //    }
+        //}
+
+        //int sum = ratios.Sum();
+        //Console.WriteLine(sum);
         Console.ReadKey();
     }
 
-    private static void DumpMonkeys()
-    {
-        foreach (var item in monkeys)
-        {
-            Console.WriteLine($"{item.Key}: {string.Join(", ",  item.Value.Items.Select(f => f.ToString()))}");
-        }
-    }
 
-    class Monkey
-{
-    public List<int> Items { get; set; }
-
-    public string Operation { get; set; }
-
-    public int DivisibleBy { get; set; }
-
-    public int DestinationIfTrue { get; set; }
-    public int DestinationIfFalse { get; set; }
-    public string OperandA { get; internal set; }
-    public string OperandB { get; internal set; }
-
-        public int Inspections { get; set; }
-    }
+    //static void FindPartNo(int x, int y, int id)
+    //{
+    //    if (char.IsDigit(world[x - 1, y - 1].Character) && world[x - 1, y - 1].Handled == false) { SpoolPartNo(x - 1, y - 1, id); }
+    //    if (char.IsDigit(world[x, y - 1].Character) && world[x, y - 1].Handled == false) { SpoolPartNo(x, y - 1, id); }
+    //    if (char.IsDigit(world[x + 1, y - 1].Character) && world[x + 1, y - 1].Handled == false) { SpoolPartNo(x + 1, y - 1, id); }
+    //    if (char.IsDigit(world[x - 1, y].Character) && world[x - 1, y].Handled == false) { SpoolPartNo(x - 1, y, id); }
+    //    if (char.IsDigit(world[x + 1, y].Character) && world[x + 1, y].Handled == false) { SpoolPartNo(x + 1, y, id); }
+    //    if (char.IsDigit(world[x - 1, y + 1].Character) && world[x - 1, y + 1].Handled == false) { SpoolPartNo(x - 1, y + 1, id); }
+    //    if (char.IsDigit(world[x, y + 1].Character) && world[x, y + 1].Handled == false) { SpoolPartNo(x, y + 1, id); }
+    //    if (char.IsDigit(world[x + 1, y + 1].Character) && world[x + 1, y + 1].Handled == false) { SpoolPartNo(x + 1, y + 1, id); }
+    //}
 
 
+    //static void SpoolPartNo(int x, int y, int id)
+    //{
+    //    while (x > 0 && char.IsDigit(world[x - 1, y].Character) == true)
+    //    {
+    //        x--;
+    //    }
+
+    //    string partNo = "";
+    //    while (x < xMax && char.IsDigit(world[x, y].Character) == true)
+    //    {
+    //        partNo += world[x, y].Character;
+    //        world[x, y].Handled = true;
+    //        x++;
+    //    }
+
+    //    if (gears.ContainsKey(id))
+    //    {
+    //        gears[id].Add(Convert.ToInt32(partNo));
+    //    }
+    //    else
+    //    {
+    //        gears.Add(id, [Convert.ToInt32(partNo)]);
+    //    }
+
+    //    if (gears[id].Count == 2)
+    //    {
+    //        ratios.Add(gears[id][0] * gears[id][1]);
+    //    }
+    //}
 }
