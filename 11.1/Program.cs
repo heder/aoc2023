@@ -40,14 +40,17 @@
                 if (t.Character == '#')
                 {
                     t.GalaxyId = id;
+                    id++;
                 }
 
                 row.Add(t);
-                id++;
             }
 
             world.Add(row);
         }
+
+
+
 
         for (int y = 0; y < yMax; y++) // Expand rows
         {
@@ -60,6 +63,7 @@
                 }
 
                 world.Insert(y, newRow);
+                y++;
                 yMax++;
             }
         }
@@ -71,8 +75,10 @@
                 for (int i = 0; i < yMax; i++)
                 {
                     world[i].Insert(x, new Tile() { Character = '.' });
-                    xMax++;
                 }
+
+                x++;
+                xMax++;
             }
         }
 
@@ -83,11 +89,11 @@
         {
             for (int x = 0; x < xMax; x++)
             {
-                if (world[x][y].Character == '#')
+                if (world[y][x].Character == '#')
                 {
-                    world[x][y].X = x;
-                    world[x][y].Y = y;
-                    galaxies.Add(world[x][y]);
+                    world[y][x].X = x;
+                    world[y][x].Y = y;
+                    galaxies.Add(world[y][x]);
                 }
             }
         }
@@ -98,7 +104,7 @@
             {
                 if (i != j)
                 {
-                    if (galaxypairs.Any(f => f.GalaxyB.GalaxyId == galaxies[i].GalaxyId && f.GalaxyA.GalaxyId == galaxies[i].GalaxyId) == false)
+                    if (galaxypairs.Any(f => f.GalaxyB.GalaxyId == galaxies[i].GalaxyId && f.GalaxyA.GalaxyId == galaxies[j].GalaxyId) == false)
                     {
                         galaxypairs.Add(new GalaxyPair() { GalaxyA = galaxies[i], GalaxyB = galaxies[j] });
                     }

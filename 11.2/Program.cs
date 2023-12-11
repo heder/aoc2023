@@ -1,150 +1,131 @@
-﻿using System.Collections;
-using System.Numerics;
-
-class Program
+﻿class Program
 {
+    class Tile
+    {
+        public char Character { get; set; }
+        public int GalaxyId { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
 
-    //static long debugVal;
+        public int xs { get; set; } = 1;
+        public int ys { get; set; } = 1;
+    }
 
-    static Dictionary<long, Monkey> monkeys = new Dictionary<long, Monkey>();
+    class GalaxyPair
+    {
+        public Tile GalaxyA { get; set; }
+        public Tile GalaxyB { get; set; }
+        public long Distance { get; set; }
+    }
+
+    static List<GalaxyPair> galaxypairs = [];
+    static int yMax;
+    static int xMax;
+    static List<List<Tile>> world = [];
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        long i = 0;
-        while (i < lines.Length)
+        yMax = lines.Length;
+        xMax = lines[0].Length;
+        int id = 1;
+
+        for (int y = 0; y < yMax; y++)
         {
+            var row = new List<Tile>();
 
-            Monkey m = new Monkey();
+            for (int x = 0; x < xMax; x++)
+            {
+                var t = new Tile();
+                t.Character = lines[y][x];
 
-            long monkey = Convert.ToInt32(lines[i].Split(" ")[1].Trim(':'));
-            i++;
-            var items = lines[i].Split(":")[1].Split(",").Select(f => long.Parse(f)).ToList();
-            i++;
-            var operation = lines[i].Split(":")[1].Split("=")[1].Trim().Split(" ");
-            i++;
-            var test = Convert.ToInt32(lines[i].Split(":")[1].Trim().Split(" ")[2]);
-            i++;
-            var trueDest = Convert.ToInt32(lines[i].Split(':')[1].Trim().Split(" ")[3]);
-            i++;
-            var falseDest = Convert.ToInt32(lines[i].Split(':')[1].Trim().Split(" ")[3]);
-            i++;
-            i++;
+                if (t.Character == '#')
+                {
+                    t.GalaxyId = id;
+                    id++;
+                }
 
-            m.Items = items;
-            m.Operation = operation[1];
-            m.OperandA = operation[0];
-            m.OperandB = operation[2];
-            m.DivisibleBy = test;
-            m.DestinationIfTrue = trueDest;
-            m.DestinationIfFalse = falseDest;
+                row.Add(t);
+            }
 
-            monkeys.Add(monkey, m);
+            world.Add(row);
         }
 
-        var d = monkeys.Values.Aggregate(1, (c, m) => c * (int)m.DivisibleBy);
 
-        for (long x = 1; x <= 10000; x++)
+
+
+        for (int y = 0; y < yMax; y++) // Expand rows
         {
-            foreach (var m in monkeys)
+            if (world[y].All(f => f.Character == '.'))
             {
-                var monkey = m.Value;
-
-                // Inspect and increase worry level
-                monkey.Inspections += monkey.Items.Count();
-                var newList = new List<long>();
-                foreach (var item in monkey.Items)
+                for (int i = 0; i < xMax; i++)
                 {
-                    long b;
+                    world[y][i].ys = 1000000;
+                }
+            }
+        }
 
-                    if (monkey.OperandB == "old")
-                        b = item;
-                    else
-                        b = Convert.ToInt32(monkey.OperandB);
+        for (int x = 0; x < xMax; x++) // Expand columns
+        {
+            if (world.All(f => f[x].Character == '.'))
+            {
+                for (int i = 0; i < yMax; i++)
+                {
+                    world[i][x].xs = 1000000;
+                }
+            }
+        }
 
-                    long newVal = 0;
-                    switch (monkey.Operation)
+        List<Tile> galaxies = [];
+
+        // Recalc positions of galaxies
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                if (world[y][x].Character == '#')
+                {
+                    world[y][x].X = x;
+                    world[y][x].Y = y;
+                    galaxies.Add(world[y][x]);
+                }
+            }
+        }
+
+        for (int i = 0; i < galaxies.Count; i++)
+        {
+            for (int j = 0; j < galaxies.Count; j++)
+            {
+                if (i != j)
+                {
+                    if (galaxypairs.Any(f => f.GalaxyB.GalaxyId == galaxies[i].GalaxyId && f.GalaxyA.GalaxyId == galaxies[j].GalaxyId) == false)
                     {
-                        case "+":
-                            newVal = item + b;
-                            break;
-
-                        case "*":
-                            newVal = item * b;
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                    // Divide worry level
-                    //newVal = newVal /= 3;
-                    newVal %= d;
-
-                    if (newVal % monkey.DivisibleBy == 0)
-                    {
-                        monkeys[monkey.DestinationIfTrue].Items.Add(newVal);
-                    }
-                    else
-                    {
-                        monkeys[monkey.DestinationIfFalse].Items.Add(newVal);
+                        galaxypairs.Add(new GalaxyPair() { GalaxyA = galaxies[i], GalaxyB = galaxies[j] });
                     }
                 }
-                monkey.Items.Clear();
-
-
-
             }
+        }
 
-            Console.WriteLine(x);
-            if (x % 100 == 0)
+        foreach (var pair in galaxypairs)
+        {
+            long xSum = 0;
+            for (int x = Math.Min(pair.GalaxyA.X, pair.GalaxyB.X) + 1; x <= Math.Max(pair.GalaxyA.X, pair.GalaxyB.X); x++)
             {
-                DumpInspections(x);
+                xSum += world[pair.GalaxyA.Y][x].xs;
             }
-            //DumpMonkeys();
+
+            long ySum = 0;
+            for (int y = Math.Min(pair.GalaxyA.Y, pair.GalaxyB.Y) + 1; y <= Math.Max(pair.GalaxyA.Y, pair.GalaxyB.Y); y++)
+            {
+                ySum += world[y][pair.GalaxyA.X].ys;
+            }
+
+            pair.Distance = xSum + ySum;
         }
 
-        var top2 = monkeys.Values.OrderByDescending(f => f.Inspections).Take(2).ToArray();
-
-
-        Console.WriteLine(top2[0].Inspections * top2[1].Inspections);
+        long sum = galaxypairs.Sum(f => f.Distance);
+        Console.WriteLine(sum);
         Console.ReadKey();
-    }
-
-    private static void DumpInspections(long x)
-    {
-        Console.WriteLine($"---------");
-        Console.WriteLine($"Round {x}");
-        foreach (var item in monkeys)
-        {
-            Console.WriteLine($"{item.Key}: {item.Value.Inspections}");
-        }
-    }
-
-    private static void DumpMonkeys()
-    {
-        foreach (var item in monkeys)
-        {
-            Console.WriteLine($"{item.Key}: {string.Join(", ", item.Value.Items.Select(f => f.ToString()))}");
-        }
-    }
-
-
-
-    class Monkey
-    {
-        public List<long> Items { get; set; }
-
-        public string Operation { get; set; }
-
-        public long DivisibleBy { get; set; }
-
-        public long DestinationIfTrue { get; set; }
-        public long DestinationIfFalse { get; set; }
-        public string OperandA { get; internal set; }
-        public string OperandB { get; internal set; }
-
-        public long Inspections { get; set; }
     }
 }
