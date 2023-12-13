@@ -1,140 +1,158 @@
-﻿class Program
+﻿using System.Collections;
+
+class Program
 {
-    static int yMax;
-    static int xMax;
-    static Cell[,] world;
+    class Record
+    {
+        public char[] Characters { get; set; }
+
+        public int[] groups { get; set; } = [];
+
+    }
+
+    static List<Record> records = [];
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        yMax = lines.Length;
-        xMax = lines[0].Length;
-
-        world = new Cell[xMax, yMax];
-
-        for (int y = 0; y < yMax; y++)
+        for (int i = 0; i < lines.Length; i++)
         {
-            for (int x = 0; x < xMax; x++)
-            {
-                world[x, y] = new Cell(lines[y][x], x, y);
-            }
+            var split1 = lines[i].Split(' ').ToArray();
+            var record = split1[0];
+            var groups = split1[1].Trim().Split(',').Select(f => Convert.ToInt32(f)).ToArray();
+
+            var r = new Record();
+            r.Characters = record.ToCharArray();
+            r.groups = groups;
+            records.Add(r);
         }
 
-        var start = world.Cast<Cell>().Where(f => f.Height == 'S').Single();
-        start.Distance = 0;
+        int valid = 0;
+        foreach (var item in records)
+        {
+            var r = item.Characters;
+            var c = r.Count(f => f == '?'); // Num ?
+            var limit = Math.Pow(2, c);
 
-        TraverseWorld(start);
+            for (int i = 0; i < limit; i++)
+            {
+                var b = new BitArray(new int[] { i });
 
-        var e = world.Cast<Cell>().Where(f => f.Height == 'E').Single();
+                char[] copy = new char[item.Characters.Length];
+                Array.Copy(item.Characters, copy, copy.Length);
 
-        Console.WriteLine(e.Distance);
+                int bpos = 0;
+                for (int d = 0; d < copy.Length; d++)
+                {
+                    if (copy[d] == '?')
+                    {
+                        if (b[bpos] == false)
+                            copy[d] = '.';
+                        else
+                            copy[d] = '#';
+
+                        bpos++;
+                    }
+
+                    
+                }
+
+                //Console.WriteLine(copy);
+
+                int gpos = 0;
+
+                int g = item.groups[gpos];
+                int p = 0;
+                while (p < copy.Length)
+                {
+                    if (copy[p] == '#') // We are at a group
+                    {
+                        // Can we spin forward g steps with a "." och end
+                        int xxx = p + g;
+                        while (p < xxx)
+                        {
+                            if (p >= copy.Length)
+                            {
+                                // Bail
+                                goto qqqqq;
+                            }
+
+
+                            if (copy[p] == '#')
+                            {
+                                // we are good
+                                copy[p] = 'S';
+                            }
+                            else
+                            {
+                                // Bail
+                                goto qqqqq;
+                            }
+
+                            p++;
+                        }
+
+                        if (p == copy.Length)
+                        {
+                            //// Ensure all groups used
+                            if (gpos < item.groups.Length - 1)
+                            {
+                                // Bail
+                                goto qqqqq;
+                            }
+
+                            valid++;
+                            //Console.WriteLine(valid);
+                            goto qqqqq;
+                        }
+
+
+                        // Check we have a '.' or are at end, else bail
+                        if (copy[p] == '.')
+                        {
+                            // Good to go
+                            gpos++;
+
+                            if (gpos == item.groups.Length)
+                            {
+                                // Ensure no remaining '#'
+                                while (p < copy.Length)
+                                {
+                                    if (copy[p] == '#')
+                                    {
+                                        // Bail
+                                        goto qqqqq;
+                                    }
+
+                                    p++;
+                                }
+
+                                valid++;
+                                //Console.WriteLine(valid);
+                                goto qqqqq;
+                            }
+
+                            g = item.groups[gpos];
+                        }
+                        else
+                        {
+                            goto qqqqq;
+                        }
+                    }
+
+                    p++;
+                }
+
+            qqqqq: { }
+            }
+
+
+        }
+
+
+
+        Console.WriteLine(valid);
         Console.ReadKey();
-    }
-
-    private static void TraverseWorld(Cell c)
-    {
-        //DumpWorld(0, xMax, 0, yMax);
-
-        if (c.Height == 'E')
-        {
-            return;
-        }
-
-        var paths = GetPaths(c);
-        foreach (var item in paths)
-        {
-            item.Distance = c.Distance + 1;
-            TraverseWorld(item); 
-        }
-
-        return;
-    }
-
-    internal static List<Cell> GetPaths(Cell c)
-    {
-        var positions = new List<Cell>();
-
-        if (c.Y > 0)
-        {
-            var u = world[c.X, c.Y - 1];
-
-            if (CheckDistanceAndHeight(c, u))
-            {
-                positions.Add(u);
-            }
-        }
-
-        if (c.Y < yMax - 1)
-        {
-            var d = world[c.X, c.Y + 1];
-
-            if (CheckDistanceAndHeight(c, d))
-            {
-                positions.Add(d);
-            }
-        }
-
-        if (c.X > 0)
-        {
-            var l = world[c.X - 1, c.Y];
-
-            if (CheckDistanceAndHeight(c, l))
-            {
-                positions.Add(l);
-            }
-        }
-
-        if (c.X < xMax - 1)
-        {
-            var r = world[c.X + 1, c.Y];
-
-            if (CheckDistanceAndHeight(c, r))
-            {
-                positions.Add(r);
-            }
-        }
-
-        return positions;
-    }
-
-    private static bool CheckDistanceAndHeight(Cell c, Cell d)
-    {
-        return c.Distance + 1 < d.Distance && 
-            ((d.Height <= c.Height + 1 && d.Height != 'E') || 
-            (c.Height == 'z' && d.Height == 'E') || 
-            (c.Height == 'S' && d.Height == 'a'));
-    }
-
-    internal class Cell
-    {
-        public Cell(char height, int x, int y)
-        {
-            Height = height;
-            Distance = int.MaxValue;
-            X = x;
-            Y = y;
-        }
-
-        public int X;
-        public int Y;
-
-        public char Height;
-        public int Distance;
-    }
-
-
-    internal static void DumpWorld(int xmin, int xmax, int ymin, int ymax)
-    {
-        for (int y = ymin; y < ymax; y++)
-        {
-            for (int x = xmin; x < xmax; x++)
-            {
-                Console.Write(world[x, y].Distance + " | ");
-            }
-
-            Console.Write(Environment.NewLine);
-        }
-        Console.Write(Environment.NewLine);
     }
 }
