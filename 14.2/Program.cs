@@ -1,131 +1,207 @@
 ﻿class Program
 {
-    static char[,] world = new char[1000, 1000];
+    public enum Direction
+    {
+        North = 1,
+        West = 2,
+        East = 3,
+        South = 4
+    }
+
+    class Tile
+    {
+        //public List<Direction> Connections = [];
+        //public List<Direction> ValidatedConnections = [];
+        //public List<Tile> ValidatedTiles = [];
+
+        public List<int> Distances = [];
+        public int Distance { get; set; } = int.MaxValue;
+        public char Character { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Character} X:{X}, Y{Y}";
+        }
+
+
+
+    }
+
+
+    static int yMax;
+    static int xMax;
+    static Tile[,] world;
+    static Tile startTile;
 
     static void Main()
     {
         string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        for (int x = 0; x < 1000; x++)
+        yMax = lines.Length;
+        xMax = lines[0].Length;
+        world = new Tile[xMax, yMax];
+
+        for (int y = 0; y < yMax; y++)
         {
-            for (int y = 0; y < 1000; y++)
+            for (int x = 0; x < xMax; x++)
             {
-                world[x, y] = '.';
+                var t = new Tile();
+                t.Character = lines[y][x];
+                t.X = x;
+                t.Y = y;
+
+                world[x, y] = t;
             }
         }
 
-        foreach (var item in lines)
+
+        for (int i = 0; i < 1000000000; i++)
         {
-            var coords = item.Split("->").Select(f => f.Trim()).ToArray();
+            Move(Direction.North);
+            Move(Direction.West);
+            Move(Direction.South);
+            Move(Direction.East);
+        }
 
-            for (int i = 0; i < coords.Length - 1; i++)
+
+        void Move(Direction direction)
+        {
+            while (true)
             {
-                var from = coords[i].Split(",").Select(int.Parse).ToArray();
-                var to = coords[i + 1].Split(",").Select(int.Parse).ToArray();
-
-                for (int x = Math.Min(from[0], to[0]); x <= Math.Max(from[0], to[0]); x++)
+                var moved = false;
+                for (int y = 0; y < yMax; y++)
                 {
-                    for (int y = Math.Min(from[1], to[1]); y <= Math.Max(from[1], to[1]); y++)
+                    for (int x = 0; x < xMax; x++)
                     {
-                        world[x, y] = '#';
+                        if (world[x, y].Character == 'O')
+                        {
+                            switch (direction)
+                            {
+                                case Direction.North:
+                                    break;
+
+                                    case Direction.West:
+                                    break;
+
+                                    case Direction.East:
+                                    break;
+
+
+                            }
+
+
+                            if (y > 0 && world[x, y - 1].Character == '.')
+                            {
+                                world[x, y - 1].Character = 'O';
+                                world[x, y].Character = '.';
+                                moved = true;
+
+                                // Dump();
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        DumpWorld(490, 510, 0, 20);
-
-        int highestY = int.MinValue;
-
-        // Find lowest '#'
-        for (int x = 0; x < 1000; x++)
-        {
-            for (int y = 0; y < 1000; y++)
-            {
-                if (world[x, y] == '#')
+                if (moved == false)
                 {
-                    highestY = Math.Max(highestY, y);
                     break;
                 }
             }
         }
 
-        int floorY = highestY + 2;
 
-        for (int x = 0; x < 1000; x++)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        int sum = 0;
+        for (int y = 0; y < yMax; y++)
         {
-            world[x, floorY] = '#';
+            for (int x = 0; x < xMax; x++)
+            {
+                if (world[x, y].Character == 'O')
+                {
+                    var weight = yMax - y;
+                    sum += weight;
+                }
+            }
         }
 
-        int sandCount = 0;
-        Position sandPos = new Position();
-        bool atRest = true;
-        while (true)
+
+        Console.WriteLine(sum);
+        Console.ReadKey();
+
+
+        void Dump()
         {
-            if (atRest == true)
+            for (int y = 0; y < yMax; y++)
             {
-                sandPos = new Position() { X = 500, Y = 0 };
+                for (int x = 0; x < xMax; x++)
+                {
+                    Console.Write(world[x, y].Character);
+                }
+
+                Console.WriteLine();
             }
 
-            // Tomt under
-            if (world[sandPos.X, sandPos.Y + 1] == '.')
-            {
-                sandPos.Y++; // d
-                atRest = false;
-            }
-            // Block under, ledigt snett vänster neråt.
-            else if (world[sandPos.X, sandPos.Y + 1] != '.' &&
-                //world[sandPos.X - 1, sandPos.Y] == '.' &&
-                world[sandPos.X - 1, sandPos.Y + 1] == '.')
-            {
-                sandPos.Y++;
-                sandPos.X--;
-                atRest = false;
-            }
-            // Block under, ledigt snett höger neråt.
-            else if (world[sandPos.X, sandPos.Y + 1] != '.' &&
-                //world[sandPos.X + 1, sandPos.Y] == '.' &&
-                world[sandPos.X + 1, sandPos.Y + 1] == '.')
-            {
-                sandPos.Y++;
-                sandPos.X++;
-                atRest = false;
-            }
-            else
-            {
-                world[sandPos.X, sandPos.Y] = 'o';
-                atRest = true;
-                sandCount++;
-            }
-
-            //DumpWorld(490, 510, 0, 20);
-
-            if (atRest == true && sandPos.X == 500 && sandPos.Y == 0)
-            {
-                Console.WriteLine(sandCount);
-                Console.ReadKey();
-            }
-        }
-    }
-
-    internal class Position
-    {
-        public int X;
-        public int Y;
-    }
-
-    internal static void DumpWorld(int xmin, int xmax, int ymin, int ymax)
-    {
-        for (int y = ymin; y < ymax; y++)
-        {
-            for (int x = xmin; x < xmax; x++)
-            {
-                Console.Write(world[x, y] == ' ' ? '.' : world[x, y]);
-            }
-
-            Console.Write(Environment.NewLine);
+            Console.WriteLine();
         }
 
-        Console.Write(Environment.NewLine);
+
+        //for (int y = 0; y < yMax; y++)
+        //{
+        //    for (int x = 0; x < xMax; x++)
+        //    {
+        //        world[x, y].ValidateConnectors();
+        //    }
+        //}
+
+        //foreach (var currentTile in startTile.ValidatedTiles)
+        //{
+        //    int distance = 1;
+        //    var nextTile = currentTile;
+        //    while (true)
+        //    {
+        //        nextTile.Distance = distance;
+
+        //        nextTile = nextTile.ValidatedTiles.FirstOrDefault(f => f.Distance > distance + 1 && f.Character != 'S');
+        //        if (nextTile == null) break;
+
+        //        distance++;
+        //    }
+        //}
+
+        //int highest = 0;
+        //for (int y = 0; y < yMax; y++)
+        //{
+        //    for (int x = 0; x < xMax; x++)
+        //    {
+        //        if (world[x, y].Character != '.' && world[x, y].Distance != int.MaxValue)
+        //        {
+        //            highest = Math.Max(highest, world[x, y].Distance);
+        //        }
+        //    }
+        //}
+
     }
 }

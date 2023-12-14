@@ -57,31 +57,106 @@
         }
 
 
-        //void Move(Direction direction)
-        //{
-        while (true)
+        for (int i = 0; i < 1000000000; i++)
         {
-            var moved = false;
-            for (int y = 0; y < yMax; y++)
+            Move(Direction.North);
+            Move(Direction.West);
+            Move(Direction.South);
+            Move(Direction.East);
+        }
+
+
+        void Move(Direction direction)
+        {
+            while (true)
             {
-                for (int x = 0; x < xMax; x++)
+                var moved = false;
+                for (int y = 0; y < yMax; y++)
                 {
-                    if (y > 0 && world[x, y - 1].Character == '.')
+                    for (int x = 0; x < xMax; x++)
                     {
-                        world[x, y - 1].Character = 'O';
-                        world[x, y].Character = '.';
-                        moved = true;
+                        if (world[x, y].Character == 'O')
+                        {
+                            switch (direction)
+                            {
+
+                            }
+
+
+                            if (y > 0 && world[x, y - 1].Character == '.')
+                            {
+                                world[x, y - 1].Character = 'O';
+                                world[x, y].Character = '.';
+                                moved = true;
+
+                                // Dump();
+                            }
+                        }
                     }
                 }
-            }
 
-            if (moved == false)
-            {
-                break;
+                if (moved == false)
+                {
+                    break;
+                }
             }
         }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        int sum = 0;
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                if (world[x, y].Character == 'O')
+                {
+                    var weight = yMax - y;
+                    sum += weight;
+                }
+            }
+        }
+
+
+        Console.WriteLine(sum);
+        Console.ReadKey();
+
+
+        void Dump()
+        {
+            for (int y = 0; y < yMax; y++)
+            {
+                for (int x = 0; x < xMax; x++)
+                {
+                    Console.Write(world[x, y].Character);
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine();
+        }
 
 
         //for (int y = 0; y < yMax; y++)
@@ -119,7 +194,5 @@
         //    }
         //}
 
-        Console.WriteLine();
-        Console.ReadKey();
     }
 }
