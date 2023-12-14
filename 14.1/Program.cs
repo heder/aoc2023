@@ -10,10 +10,6 @@
 
     class Tile
     {
-        //public List<Direction> Connections = [];
-        //public List<Direction> ValidatedConnections = [];
-        //public List<Tile> ValidatedTiles = [];
-
         public List<int> Distances = [];
         public int Distance { get; set; } = int.MaxValue;
         public char Character { get; set; }
@@ -24,16 +20,12 @@
         {
             return $"{Character} X:{X}, Y{Y}";
         }
-
-
-
     }
 
 
     static int yMax;
     static int xMax;
     static Tile[,] world;
-    static Tile startTile;
 
     static void Main()
     {
@@ -56,72 +48,32 @@
             }
         }
 
-
-        for (int i = 0; i < 1000000000; i++)
+        while (true)
         {
-            Move(Direction.North);
-            Move(Direction.West);
-            Move(Direction.South);
-            Move(Direction.East);
-        }
-
-
-        void Move(Direction direction)
-        {
-            while (true)
+            var moved = false;
+            for (int y = 0; y < yMax; y++)
             {
-                var moved = false;
-                for (int y = 0; y < yMax; y++)
+                for (int x = 0; x < xMax; x++)
                 {
-                    for (int x = 0; x < xMax; x++)
+                    if (world[x, y].Character == 'O')
                     {
-                        if (world[x, y].Character == 'O')
+                        if (y > 0 && world[x, y - 1].Character == '.')
                         {
-                            switch (direction)
-                            {
+                            world[x, y - 1].Character = 'O';
+                            world[x, y].Character = '.';
+                            moved = true;
 
-                            }
-
-
-                            if (y > 0 && world[x, y - 1].Character == '.')
-                            {
-                                world[x, y - 1].Character = 'O';
-                                world[x, y].Character = '.';
-                                moved = true;
-
-                                // Dump();
-                            }
+                            // Dump();
                         }
                     }
                 }
+            }
 
-                if (moved == false)
-                {
-                    break;
-                }
+            if (moved == false)
+            {
+                break;
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -157,42 +109,5 @@
 
             Console.WriteLine();
         }
-
-
-        //for (int y = 0; y < yMax; y++)
-        //{
-        //    for (int x = 0; x < xMax; x++)
-        //    {
-        //        world[x, y].ValidateConnectors();
-        //    }
-        //}
-
-        //foreach (var currentTile in startTile.ValidatedTiles)
-        //{
-        //    int distance = 1;
-        //    var nextTile = currentTile;
-        //    while (true)
-        //    {
-        //        nextTile.Distance = distance;
-
-        //        nextTile = nextTile.ValidatedTiles.FirstOrDefault(f => f.Distance > distance + 1 && f.Character != 'S');
-        //        if (nextTile == null) break;
-
-        //        distance++;
-        //    }
-        //}
-
-        //int highest = 0;
-        //for (int y = 0; y < yMax; y++)
-        //{
-        //    for (int x = 0; x < xMax; x++)
-        //    {
-        //        if (world[x, y].Character != '.' && world[x, y].Distance != int.MaxValue)
-        //        {
-        //            highest = Math.Max(highest, world[x, y].Distance);
-        //        }
-        //    }
-        //}
-
     }
 }
