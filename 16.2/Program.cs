@@ -26,26 +26,18 @@
         {
             switch (Direction)
             {
-                case Direction.North:
-                    Y--;
-                    break;
-                case Direction.West:
-                    X--;
-                    break;
-                case Direction.East:
-                    X++;
-                    break;
-                case Direction.South:
-                    Y++;
-                    break;
+                case Direction.North: Y--; break;
+                case Direction.West: X--; break;
+                case Direction.East: X++; break;
+                case Direction.South: Y++; break;
             }
         }
     }
 
-    static List<Beam> Beams = [new Beam() { X = -1, Y = 0 }];
+
+    static List<int> configs = [];
     static int yMax;
     static int xMax;
-    static int noEnergized = 0;
 
     static void Main()
     {
@@ -70,7 +62,77 @@
 
         //Dump();
 
-        world[0, 0].Energized = true;
+        for (int xx = 0; xx < xMax; xx++)
+        {
+            Console.WriteLine($"{1}:{xx}");
+            Tile[,] localWorld = CopyWorld(lines);
+            Run(localWorld, xx, -1, Direction.South);
+        }
+
+        for (int xx = 0; xx < xMax; xx++)
+        {
+            Console.WriteLine($"{2}:{xx}");
+            Tile[,] localWorld = CopyWorld(lines);
+            Run(localWorld, xx, yMax, Direction.North);
+        }
+
+        for (int yy = 0; yy < yMax; yy++)
+        {
+            Console.WriteLine($"{3}:{yy}");
+            Tile[,] localWorld = CopyWorld(lines);
+            Run(localWorld, -1, yy, Direction.East);
+        }
+
+        for (int yy = 0; yy < yMax; yy++)
+        {
+            Console.WriteLine($"{4}:{yy}");
+            Tile[,] localWorld = CopyWorld(lines);
+            Run(localWorld, xMax, yy, Direction.West);
+        }
+
+        Console.WriteLine(configs.Max());
+        Console.ReadKey();
+
+
+        void Dump()
+        {
+            for (int y = 0; y < yMax; y++)
+            {
+                for (int x = 0; x < xMax; x++)
+                {
+                    Console.Write(world[x, y].Energized ? '#' : world[x, y].Character);
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine();
+        }
+    }
+
+    private static Tile[,] CopyWorld(string[] lines)
+    {
+        var localWorld = new Tile[xMax, yMax];
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                var t = new Tile();
+                t.Character = lines[y][x];
+                t.X = x;
+                t.Y = y;
+                localWorld[x, y] = t;
+            }
+        }
+
+        return localWorld;
+    }
+
+    private static void Run(Tile[,]? world, int startX, int startY, Direction startDirection)
+    {
+        List<Beam> Beams = [new Beam() { X = startX, Y = startY, Direction = startDirection }];
+
+        List<int> configurations = [];
         while (true)
         {
             //Dump();
@@ -181,31 +243,13 @@
                 }
             }
 
-            if (sum == noEnergized)
+            configurations.Add(sum);
+
+            if (configurations.Where(f => f == sum).Count() > 10)
             {
-                Console.WriteLine("*******************" + noEnergized);
-                Console.ReadKey();
+                configs.Add(sum);
+                return;
             }
-
-            noEnergized = sum;
-            Console.WriteLine(sum);
-        }
-        
-        Console.ReadKey();
-
-        void Dump()
-        {
-            for (int y = 0; y < yMax; y++)
-            {
-                for (int x = 0; x < xMax; x++)
-                {
-                    Console.Write(world[x, y].Energized ? '#' : world[x, y].Character);
-                }
-
-                Console.WriteLine();
-            }
-
-            Console.WriteLine();
         }
     }
 }
