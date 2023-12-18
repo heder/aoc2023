@@ -41,7 +41,7 @@ class Program
             coordinates.Add(new Coordinate(currentX, currentY));
         }
 
-        LinearRing lr = new(coordinates.ToArray());
+        LinearRing lr = new([.. coordinates]);
         Polygon p = new(lr);
         var dilate = p.Buffer(0.5, new BufferParameters() { JoinStyle = JoinStyle.Mitre });
 
