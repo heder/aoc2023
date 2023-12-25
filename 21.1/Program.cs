@@ -1,219 +1,230 @@
-﻿class Monkey
+﻿
+abstract class Node
 {
     public string name;
+    public long timestamp;
+    //public bool holding;
+    public bool output;
+    public List<Node> children = [];
 
-    public decimal result;
-    public bool calculated = false;
+    public Queue<bool> outputQueue = new Queue<bool>();
 
-    public char op;
-
-    public Monkey val1;
-    public Monkey val2;
-
-    public void Calc()
+    public virtual void In(bool pulse, string name)
     {
-        if (val1.calculated && val2.calculated)
+        //holding = true;
+        timestamp = Program.timestamp;
+        Program.timestamp++;
+    }
+
+    public abstract void Out();
+}
+
+class BroadcasterNode : Node
+{
+    bool state;
+
+    public override void In(bool pulse, string name)
+    {
+        state = pulse;
+        base.In(pulse, name);
+
+        outputQueue.Enqueue(state);
+    }
+
+    public override void Out()
+    {
+        var send = outputQueue.Dequeue();
+
+        foreach (Node node in children)
         {
-            switch (op)
-            {
-                case '+':
-                    result = val1.result + val2.result;
-                    break;
+            if (send == true) Program.noHigh++;
+            if (send == false) Program.noLow++;
 
-                case '-':
-                    result = val1.result - val2.result;
-                    break;
+            node.In(send, name);
+            Console.WriteLine($"{this.name} {state} {node.name}");
+        }
 
-                case '*':
-                    result = val1.result * val2.result;
-                    break;
+        //holding = false;
+    }
+}
 
-                case '/':
-                    result = val1.result / val2.result;
-                    break;
+class OutputNode : Node
+{
+    //public bool state;
 
-                default:
-                    break;
-            }
+    public override void In(bool pulse, string name)
+    {
+        if (pulse == false)
+        {
+            Console.WriteLine("Single low pulse received");
+            Console.ReadKey();
+        }
 
-            calculated = true;
+        outputQueue.Enqueue(pulse);
+        base.In(pulse, name);
+    }
+
+    public override void Out()
+    {
+        var send = outputQueue.Dequeue();
+        Console.WriteLine($"{name} {send}");
+    }
+}
+
+
+class ConjunctionNode : Node
+{
+    public Dictionary<string, bool> inputs = [];
+    public override void In(bool pulse, string name)
+    {
+        inputs[name] = pulse;
+        base.In(pulse, name);
+
+
+        if (inputs.Values.All(f => f == true))
+        {
+            outputQueue.Enqueue(false);
+        }
+        else
+        {
+            outputQueue.Enqueue(true);
+        }
+    }
+
+    public override void Out()
+    {
+        var send = outputQueue.Dequeue();
+
+        foreach (Node node in children)
+        {
+            if (send == true) Program.noHigh++;
+            if (send == false) Program.noLow++;
+
+            node.In(send, name);
+            Console.WriteLine($"{this.name} {false} {node.name}");
         }
     }
 }
 
 
+class FlipFlopNode : Node
+{
+    public bool state;
+
+    public override void In(bool pulse, string name)
+    {
+        if (pulse == true)
+        {
+            return;
+        }
+
+        if (pulse == false)
+        {
+            state = !state;
+        }
+
+        base.In(pulse, name);
+
+
+        outputQueue.Enqueue(state);
+    }
+
+    public override void Out()
+    {
+        var send = outputQueue.Dequeue();
+
+        foreach (Node node in children)
+        {
+            if (send == true) Program.noHigh++;
+            if (send == false) Program.noLow++;
+
+            node.In(send, name);
+            Console.WriteLine($"{this.name} {false} {node.name}");
+        }
+    }
+}
+
 class Program
 {
+    static List<Node> nodes = [];
+    public static long timestamp = 0;
+
+    public static long noHigh = 0;
+    public static long noLow = 0;
+
+
     static void Main()
     {
         var lines = File.ReadAllLines("in.txt");
 
-        var monkeys = new Dictionary<string, Monkey>();
-
-        foreach (var item in lines)
+        for (long i = 0; i < lines.Length; i++)
         {
-            var s1 = item.Split(':');
-            var name = s1[0];
+            var s1 = lines[i].Split("->");
+            var node = s1[0].Trim();
 
-            Monkey m;
-            if (monkeys.ContainsKey(name))
-            {
-                m = monkeys[name];
-            }
+            if (node[0] == '%')
+                nodes.Add(new FlipFlopNode() { name = node[1..] });
+            else if (node[0] == '&')
+                nodes.Add(new ConjunctionNode() { name = node[1..] });
+            else if (node == "rx")
+                nodes.Add(new OutputNode() { name = node });
             else
+                nodes.Add(new BroadcasterNode() { name = node });
+        }
+
+        for (long i = 0; i < lines.Length; i++)
+        {
+            var s1 = lines[i].Split("->");
+            var node = s1[0].Trim(' ', '%', '&');
+            var children = s1[1].Trim().Split(',').Select(f => f.Trim()).ToList();
+
+            if (children[0] == "rx")
             {
-                m = new Monkey() { name = name };
-                monkeys.Add(name, m);
+                nodes.Add(new OutputNode() { name = "rx" });
             }
 
-            var s2 = s1[1].Trim().Split(' ');
-            if (s2.Length == 1)
+            var n = nodes.FirstOrDefault(f => f.name == node);
+
+            if (n != null)
             {
-                m.result = Convert.ToInt32(s2[0]);
-                m.calculated = true;
-            }
-            else
-            {
-                var name1 = s2[0];
-                var name2 = s2[2];
-
-                Monkey mo1;
-                if (monkeys.ContainsKey(name1))
+                foreach (var item in children)
                 {
-                    mo1 = monkeys[name1];
-                }
-                else
-                {
-                    mo1 = new Monkey() { name = name1 };
-                    monkeys.Add(name1, mo1);
-                }
+                    var c = nodes.First(f => f.name == item);
 
-                Monkey mo2;
-                if (monkeys.ContainsKey(name2))
-                {
-                    mo2 = monkeys[name2];
-                }
-                else
-                {
-                    mo2 = new Monkey() { name = name2 };
-                    monkeys.Add(name2, mo2);
-                }
+                    if (c is ConjunctionNode x)
+                    {
+                        x.inputs.Add(node, false);
+                    }
 
-                m.val1 = mo1;
-                m.val2 = mo2;
-
-                m.op = s2[1][0];
+                    n.children.Add(c);
+                }
             }
         }
 
-        var r = monkeys["root"];
 
-        Calc(r);
-
-        Console.WriteLine(r.result);
-        Console.ReadKey();
-    }
-
-    private static void Calc(Monkey r)
-    {
-        if (r.val1.calculated == false)
-            Calc(r.val1);
-
-        if (r.val2.calculated == false)
-            Calc(r.val2);
-
-        if (r.val1.calculated == true && r.val2.calculated == true)
+        for (long i = 0; i < 1000; i++)
         {
-            r.Calc();
+            noLow++; // Button
+
+            var b = nodes.First(f => f.name == "broadcaster");
+            b.In(false, "init");
+            while (true)
+            {
+                var n = nodes.Where(f => f.outputQueue.Any() == true).OrderBy(f => f.timestamp).ToList();
+                foreach (var item in n)
+                {
+                    item.Out();
+                }
+
+                if (n.Count == 0)
+                    break;
+
+            }
+
+            Console.WriteLine($"{Program.noLow} {Program.noHigh}");
+
         }
+
+        Console.WriteLine($"{(Program.noLow) * Program.noHigh}");
     }
-
-
-
-
-    //    Node first = null;
-    //    Node prev = null;
-    //    Node theZero = null;
-
-    //    int i = 1;
-    //    foreach (var item in lines)
-    //    {
-    //        Node n = new Node();
-    //        first ??= n;
-
-    //        if (item == 0)
-    //        {
-    //            theZero = n;
-    //        }
-
-    //        n.value = item;
-    //        n.prev = prev;
-
-    //        if (prev != null)
-    //        {
-    //            prev.next = n;
-    //        }
-
-    //        prev = n;
-
-    //        if (i == lines.Count())
-    //        {
-    //            n.next = first;
-    //            first.prev = n;
-    //        }
-
-    //        originalOrder.Add(n);
-
-    //        i++;
-    //    }
-
-    //    foreach (var item in originalOrder)
-    //    {
-
-    //        if (item.value != 0)
-    //        {
-    //            Node newPos = item;
-
-    //            Node oldF = item.next;
-    //            Node oldB = item.prev;
-
-    //            oldF.prev = oldB;
-    //            oldB.next = oldF;
-
-    //            if (item.value > 0)
-    //            {
-    //                for (int f = 0; f <= item.value; f++)
-    //                {
-    //                    newPos = newPos.next;
-    //                }
-    //            }
-    //            else if (item.value < 0)
-    //            {
-    //                for (int b = 0; b < Math.Abs(item.value); b++)
-    //                {
-    //                    newPos = newPos.prev;
-    //                }
-    //            }
-
-    //            item.next = newPos;
-    //            item.prev = newPos.prev;
-
-    //            newPos.prev = item;
-    //            item.prev.next = item;
-    //        }
-    //    }
-
-    //    int s = 0;
-    //    for (int z = 1; z < 3500; z++)
-    //    {
-    //        theZero = theZero.next;
-
-    //        if (z == 1000) s += theZero.value;
-    //        if (z == 2000) s += theZero.value;
-    //        if (z == 3000) s += theZero.value;
-    //    }
-
-    //    Console.WriteLine(s);
-    //    Console.ReadKey();
-    //}
 }

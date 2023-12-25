@@ -1,107 +1,206 @@
-﻿class Node
-{
-    public Node next;
-    public Node prev;
+﻿using MathNet.Numerics;
 
-    public long value;
+abstract class Node
+{
+    public string name;
+    public long timestamp;
+    public List<Node> children = [];
+
+    public Queue<bool> outputQueue = new Queue<bool>();
+
+    public virtual void In(bool pulse, string name)
+    {
+        timestamp = Program.timestamp;
+        Program.timestamp++;
+    }
+
+    public virtual void Out(long i)
+    {
+        var send = outputQueue.Dequeue();
+
+        foreach (Node node in children)
+        {
+            if (send == true) Program.noHigh++;
+            if (send == false) Program.noLow++;
+
+            node.In(send, name);
+        }
+    }
+}
+
+class BroadcasterNode : Node
+{
+    bool state;
+
+    public override void In(bool pulse, string name)
+    {
+        state = pulse;
+        base.In(pulse, name);
+
+        outputQueue.Enqueue(state);
+    }
+}
+
+class OutputNode : Node
+{
+    public override void In(bool pulse, string name)
+    {
+        if (pulse == false)
+        {
+            Console.WriteLine("Low pulse received");
+            Console.ReadKey();
+        }
+
+        outputQueue.Enqueue(pulse);
+        base.In(pulse, name);
+    }
 }
 
 
-class Program
+class ConjunctionNode : Node
 {
-    static void Main()
+    public Dictionary<string, bool> inputs = [];
+    public override void In(bool pulse, string name)
     {
-        var lines = File.ReadAllLines("in.txt").Select(int.Parse);
+        inputs[name] = pulse;
+        base.In(pulse, name);
 
-        var originalOrder = new List<Node>();
-
-        Node first = null;
-        Node prev = null;
-        Node theZero = null;
-
-        int i = 1;
-        foreach (var item in lines)
+        if (inputs.Values.All(f => f == true))
         {
-            Node n = new Node();
-            first ??= n;
+            outputQueue.Enqueue(false);
+        }
+        else
+        {
+            outputQueue.Enqueue(true);
+        }
+    }
 
-            if (item == 0)
+    public override void Out(long i)
+    {
+        var send = outputQueue.Dequeue();
+
+        foreach (Node node in children)
+        {
+            if (send == true)
             {
-                theZero = n;
+                if (name == "sj" || name == "qq" || name == "bg" || name == "ls")
+                {
+                    Console.WriteLine($"{name} will output high @ {i}");
+                }
             }
 
-            n.value = item * (long)811589153;
-            n.prev = prev;
+            if (send == true) Program.noHigh++;
+            if (send == false) Program.noLow++;
 
-            if (prev != null)
-            {
-                prev.next = n;
-            }
+            node.In(send, name);
+        }
+    }
+}
 
-            prev = n;
 
-            if (i == lines.Count())
-            {
-                n.next = first;
-                first.prev = n;
-            }
+class FlipFlopNode : Node
+{
+    public bool state;
 
-            originalOrder.Add(n);
-
-            i++;
+    public override void In(bool pulse, string name)
+    {
+        if (pulse == true)
+        {
+            return;
         }
 
-        for (int j = 0; j < 10; j++)
+        if (pulse == false)
         {
-            foreach (var item in originalOrder)
+            state = !state;
+        }
+
+        base.In(pulse, name);
+
+        outputQueue.Enqueue(state);
+    }
+}
+
+class Program
+{
+    static List<Node> nodes = [];
+    public static long timestamp = 0;
+
+    public static long noHigh = 0;
+    public static long noLow = 0;
+
+    static void Main()
+    {
+        var lines = File.ReadAllLines("in.txt");
+
+        for (long i = 0; i < lines.Length; i++)
+        {
+            var s1 = lines[i].Split("->");
+            var node = s1[0].Trim();
+
+            if (node[0] == '%')
+                nodes.Add(new FlipFlopNode() { name = node[1..] });
+            else if (node[0] == '&')
+                nodes.Add(new ConjunctionNode() { name = node[1..] });
+            else if (node == "rx")
+                nodes.Add(new OutputNode() { name = node });
+            else
+                nodes.Add(new BroadcasterNode() { name = node });
+        }
+
+        for (long i = 0; i < lines.Length; i++)
+        {
+            var s1 = lines[i].Split("->");
+            var node = s1[0].Trim(' ', '%', '&');
+            var children = s1[1].Trim().Split(',').Select(f => f.Trim()).ToList();
+
+            if (children[0] == "rx")
             {
-                long r = item.value % 4999;
+                nodes.Add(new OutputNode() { name = "rx" });
+            }
 
-                if (r != 0)
+            var n = nodes.FirstOrDefault(f => f.name == node);
+
+            if (n != null)
+            {
+                foreach (var item in children)
                 {
-                    Node newPos = item;
+                    var c = nodes.First(f => f.name == item);
 
-                    Node oldF = item.next;
-                    Node oldB = item.prev;
-
-                    oldF.prev = oldB;
-                    oldB.next = oldF;
-
-                    if (r > 0)
+                    if (c is ConjunctionNode x)
                     {
-                        for (int f = 0; f <= r; f++)
-                        {
-                            newPos = newPos.next;
-                        }
-                    }
-                    else if (r < 0)
-                    {
-                        for (int b = 0; b < Math.Abs(r); b++)
-                        {
-                            newPos = newPos.prev;
-                        }
+                        x.inputs.Add(node, false);
                     }
 
-                    item.next = newPos;
-                    item.prev = newPos.prev;
-
-                    newPos.prev = item;
-                    item.prev.next = item;
+                    n.children.Add(c);
                 }
             }
         }
 
-        long s = 0;
-        for (int z = 1; z < 3500; z++)
+        for (long i = 1; i < 100000; i++)
         {
-            theZero = theZero.next;
+            noLow++; // Button
 
-            if (z == 1000) s += theZero.value;
-            if (z == 2000) s += theZero.value;
-            if (z == 3000) s += theZero.value;
+            var b = nodes.First(f => f.name == "broadcaster");
+            b.In(false, "init");
+            while (true)
+            {
+                var n = nodes.Where(f => f.outputQueue.Count > 0).OrderBy(f => f.timestamp).ToList();
+                foreach (var item in n)
+                {
+                    item.Out(i);
+                }
+
+                if (n.Count == 0)
+                    break;
+            }
+
+            // 3739
+            // 3797
+            // 3919
+            // 4003
         }
 
-        Console.WriteLine(s);
+        Console.WriteLine(Euclid.LeastCommonMultiple(3739, 3797, 3919, 4003));
         Console.ReadKey();
     }
 }

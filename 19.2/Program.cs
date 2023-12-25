@@ -1,244 +1,325 @@
-﻿using System.Net.Quic;
-
-class State
+﻿
+class Rule
 {
-    public int ore = 0;
-    public int clay = 0;
-    public int obsidian = 0;
-    public int geode = 0;
+    public char Variable { get; set; }
+    public char Operator { get; set; }
+    public int Operand { get; set; }
+    public string Destination { get; set; }
+    public Rule PrevRule { get; set; } = null;
+    public string WorkFlow { get; set; }
 
-    public int oreCollectors = 1;
-    public int clayCollectors = 0;
-    public int obsidianCollectors = 0;
-    public int geodeCollectors = 0;
+}
 
-    public int oreCollectorsBuilding = 0;
-    public int clayCollectorsBuilding = 0;
-    public int obsidianCollectorsBuilding = 0;
-    public int geodeCollectorsBuilding = 0;
+class ValidInterval
+{
+    public char Variable { get; set; }
 
-    public void Collect()
-    {
-        ore += oreCollectors;
-        clay += clayCollectors;
-        obsidian += obsidianCollectors;
-        geode += geodeCollectors;
+    public int Low { get; set; }
+    public int High { get; set; }
+}
 
-        oreCollectors += oreCollectorsBuilding;
-        clayCollectors += clayCollectorsBuilding;
-        obsidianCollectors += obsidianCollectorsBuilding;
-        geodeCollectors += geodeCollectorsBuilding;
 
-        oreCollectorsBuilding = 0;
-        clayCollectorsBuilding = 0;
-        obsidianCollectorsBuilding = 0;
-        geodeCollectorsBuilding = 0;
-    }
+class Part
+{
+    public Dictionary<char, int> Ratings { get; set; }
 }
 
 class Program
 {
-    static int oreCollectorOreCost;
-    static int clayCollectorOreCost;
+    static Dictionary<string, List<Rule>> rules = [];
+    static List<Part> parts = [];
 
-    static int obsidianCollectorOreCost;
-    static int obsidianCollectorClayCost;
+    static List<Part> accepted = [];
+    static List<Part> rejected = [];
 
-    static int geodeCollectorOreCost;
-    static int geodeCollectorObsidianCost;
-
-    static List<int> ql = new List<int>();
 
     static void Main()
     {
         var lines = File.ReadAllLines("in.txt");
 
-        int bp = 1;
-
-        foreach (var item in lines)
+        int i = 0;
+        while (lines[i] != "")
         {
-            var l0 = item.Split(":");
-            var l1 = l0[1].Split(".");
-            var l2 = l1[0].Split(" ");
-            oreCollectorOreCost = int.Parse(l2[5]);
+            var line = lines[i];
 
-            var l3 = l1[1].Split(" ");
-            clayCollectorOreCost = int.Parse(l3[5]);
+            var split1 = line.Split('{');
+            var name = split1[0]; //
 
-            var l4 = l1[2].Split(" ");
-            obsidianCollectorOreCost = int.Parse(l4[5]);
-            obsidianCollectorClayCost = int.Parse(l4[8]);
-
-            var l5 = l1[3].Split(" ");
-            geodeCollectorOreCost = int.Parse(l5[5]);
-            geodeCollectorObsidianCost = int.Parse(l5[8]);
-
-            var minutes = new Dictionary<int, List<State>>();
-            minutes.Add(0, new List<State>()
-            { new State()
-                {
-                    ore = 0,
-                    clay = 0,
-                    obsidian = 0,
-                    geode = 0,
-                    oreCollectors = 1,
-                    clayCollectors = 0,
-                    obsidianCollectors = 0,
-                    geodeCollectors = 0
-                }
-            });
-
-
-            for (int m = 0; m < 32; m++)
+            var split2 = split1[1].Trim('}').Split(',');
+            for (int j = 0; j < split2.Length; j++)
             {
-                var states = minutes[m];
+                var split3 = split2[j].Split(':');
 
-                Console.WriteLine($"{DateTime.Now}: {bp}:{m}");
+                Rule p = null;
 
-                List <State> ml = new List<State>();
-
-                foreach (var s in states)
+                if (split3.Length == 2)
                 {
-                    List<State> list = GetNewStates(s);
-
-                    foreach (var l in list)
+                    if (split3[0].Contains('<'))
                     {
-                        l.Collect();
+                        var split4 = split3[0].Split('<');
+
+                        p = new Rule
+                        {
+                            Variable = split4[0][0],
+                            Operand = Convert.ToInt32(split4[1]),
+                            Operator = '<',
+                            Destination = split3[1],
+                            PrevRule = p,
+                            WorkFlow = name
+                        };
+
+                        if (rules.TryGetValue(name, out List<Rule>? value))
+                        {
+                            value.Add(p);
+                        }
+                        else
+                        {
+                            rules.Add(name, new List<Rule>() { p });
+                        }
                     }
 
-                    ml.AddRange(list);
+                    if (split3[0].Contains('>'))
+                    {
+                        var split4 = split3[0].Split('>');
+
+                        p = new Rule
+                        {
+                            Variable = split4[0][0],
+                            Operand = Convert.ToInt32(split4[1]),
+                            Operator = '>',
+                            Destination = split3[1],
+                            PrevRule = p,
+                            WorkFlow = name
+                        };
+
+                        if (rules.TryGetValue(name, out List<Rule>? value))
+                        {
+                            value.Add(p);
+                        }
+                        else
+                        {
+                            rules.Add(name, new List<Rule>() { p });
+                        }
+                    }
+
+
                 }
+                else if (split3.Length == 1)
+                {
+                    if (split3[0] == "A")
+                    {
+                        p = new Rule
+                        {
+                            Operator = 'A',
+                            PrevRule = p,
+                            WorkFlow = name
+                        };
 
-                //minutes.Add(m + 1, ml);
+                        if (rules.TryGetValue(name, out List<Rule>? value))
+                        {
+                            value.Add(p);
+                        }
+                        else
+                        {
+                            rules.Add(name, new List<Rule>() { p });
+                        }
+                    }
+                    else if (split3[0] == "R")
+                    {
+                        p = new Rule
+                        {
+                            Operator = 'R',
+                            PrevRule = p,
+                            WorkFlow = name
+                        };
 
-                minutes.Add(m + 1, ml.DistinctBy(f => new { f.ore, f.clay, f.obsidian, f.geode, f.oreCollectors, f.clayCollectors, f.obsidianCollectors, f.geodeCollectors }).ToList());
+                        if (rules.TryGetValue(name, out List<Rule>? value))
+                        {
+                            value.Add(p);
+                        }
+                        else
+                        {
+                            rules.Add(name, new List<Rule>() { p });
+                        }
+                    }
+                    else
+                    {
+                        p = new Rule
+                        {
+                            Operator = 'J',
+                            Destination = split3[0],
+                            PrevRule = p,
+                            WorkFlow = name
+                        };
 
-                //Console.WriteLine($"{minute} ore:{ore} ({oreCollectors}) clay:{clay} ({clayCollectors}) obsidian:{obsidian} ({obsidianCollectors}) geode:{geode} ({geodeCollectors})");
-                //Console.WriteLine($"GEODES: {geode}");
+                        if (rules.TryGetValue(name, out List<Rule>? value))
+                        {
+                            value.Add(p);
+                        }
+                        else
+                        {
+                            rules.Add(name, new List<Rule>() { p });
+                        }
+                    }
+                }
+                else
+                {
+                    throw new Exception();
+                }
             }
 
-            int max = 0;
-            var z = minutes[32];
-            foreach (var x in z)
-            {
-                if (x.geode > max) max = x.geode;
-            }
-
-            Console.WriteLine($"{DateTime.Now}: {bp}: {max}");
-            ql.Add(max);
-            bp++;
-
+            i++;
         }
 
-        Console.WriteLine(ql[0] * ql[1] * ql[2]);
+        // Backtrack rules from 'A'
+
+        var acceptingRules = rules.SelectMany(f => f.Value).Where(f => f.Operator == 'A');
+        foreach (var acceptingRule in acceptingRules)
+        {
+            BackTrack(acceptingRule, new List<ValidInterval>());
+        }
+
+
+
+        void BackTrack(Rule rule, List<ValidInterval> v)
+        {
+            if (rule.PrevRule == null && rule.WorkFlow == "in")
+            {
+                // At root
+            }
+
+            List<Rule> backPath;
+            if (rule.PrevRule == null)
+            {
+                // Find rules that lead us here
+                backPath = rules.SelectMany(f => f.Value).Where(f => f.Destination == rule.WorkFlow).ToList();
+            }
+            else
+            {
+                backPath = new List<Rule>() { rule.PrevRule };
+            }
+
+            List<ValidInterval> vi = new List<ValidInterval>(v);
+
+            if (rule.Operator == 'A')
+            {
+
+            }
+
+            if (rule.Operator == '<')
+            {
+                vi.Add(new ValidInterval() { Variable = rule.Variable, Low = rule.Operand, High = 4000 });
+            }
+
+            if (rule.Operator == '>')
+            {
+                vi.Add(new ValidInterval() { Variable = rule.Variable, Low = rule.Operand, High = 4000 });
+            }
+
+
+            foreach (var r in backPath)
+            {
+                BackTrack(r, vi);
+            }
+        }
+
+
+        //foreach (var part in parts)
+        //{
+        //    var currentRules = rules["in"];
+        //    Console.Write("in -> ");
+        //    while (true)
+        //    {
+        //        for (int r = 0; r < currentRules.Count; r++)
+        //        {
+        //            var rule = currentRules[r];
+
+        //            switch (rule.Operator)
+        //            {
+        //                case '>':
+        //                    if (part.Ratings[rule.Variable] > rule.Operand)
+        //                    {
+        //                        if (rule.Destination == "A")
+        //                        {
+        //                            Console.Write("A");
+        //                            accepted.Add(part);
+        //                            goto nextnext;
+        //                        }
+        //                        else if (rule.Destination == "R")
+        //                        {
+        //                            Console.Write("R");
+        //                            rejected.Add(part);
+        //                            goto nextnext;
+        //                        }
+        //                        else
+        //                        {
+        //                            Console.Write($"{rule.Destination} ->");
+        //                            currentRules = rules[rule.Destination];
+        //                            goto next;
+        //                        }
+        //                    }
+        //                    break;
+
+        //                case '<':
+        //                    if (part.Ratings[rule.Variable] < rule.Operand)
+        //                    {
+        //                        if (rule.Destination == "A")
+        //                        {
+        //                            Console.Write("A");
+        //                            accepted.Add(part);
+        //                            goto nextnext;
+        //                        }
+        //                        else if (rule.Destination == "R")
+        //                        {
+        //                            Console.Write("R");
+        //                            rejected.Add(part);
+        //                            goto nextnext;
+        //                        }
+        //                        else
+        //                        {
+        //                            Console.Write($"{rule.Destination} ->");
+        //                            currentRules = rules[rule.Destination];
+        //                            goto next;
+        //                        }
+
+        //                    }
+        //                    break;
+
+        //                case 'J':
+        //                    Console.Write($"{rule.Destination} ->");
+        //                    currentRules = rules[rule.Destination];
+        //                    goto next;
+
+        //                case 'A':
+        //                    Console.Write("A");
+        //                    accepted.Add(part);
+        //                    goto nextnext;
+
+        //                case 'R':
+        //                    Console.Write("R");
+        //                    rejected.Add(part);
+        //                    goto nextnext;
+        //            }
+        //        }
+
+        //    next: { }
+        //    }
+
+        //nextnext: { }
+        //    Console.WriteLine();
+        //}
+
+        //int sum = 0;
+        //foreach (var item in accepted)
+        //{
+        //    sum += item.Ratings.Sum(f => f.Value);
+        //}
+
+        Console.WriteLine();
         Console.ReadKey();
-
-
-    }
-
-    private static List<State> GetNewStates(State s)
-    {
-        var list = new List<State>();
-
-        if (s.ore >= geodeCollectorOreCost && s.obsidian >= geodeCollectorObsidianCost)
-        {
-            var newState1 = new State()
-            {
-                clay = s.clay,
-                ore = s.ore - geodeCollectorOreCost,
-                obsidian = s.obsidian - geodeCollectorObsidianCost,
-                geode = s.geode,
-
-                clayCollectors = s.clayCollectors,
-                geodeCollectors = s.geodeCollectors,
-                obsidianCollectors = s.obsidianCollectors,
-                oreCollectors = s.oreCollectors,
-
-                geodeCollectorsBuilding = 1
-            };
-
-            list.Add(newState1);
-        }
-
-        if (s.ore >= obsidianCollectorOreCost && s.clay >= obsidianCollectorClayCost)
-        {
-            var newState2 = new State()
-            {
-                clay = s.clay - obsidianCollectorClayCost,
-                ore = s.ore - obsidianCollectorOreCost,
-                obsidian = s.obsidian,
-                geode = s.geode,
-
-                clayCollectors = s.clayCollectors,
-                geodeCollectors = s.geodeCollectors,
-                obsidianCollectors = s.obsidianCollectors,
-                oreCollectors = s.oreCollectors,
-
-                obsidianCollectorsBuilding = 1
-            };
-
-            list.Add(newState2);
-        }
-
-        if (s.ore >= clayCollectorOreCost)
-        {
-            var newState3 = new State()
-            {
-                clay = s.clay,
-                ore = s.ore - clayCollectorOreCost,
-                obsidian = s.obsidian,
-                geode = s.geode,
-
-                clayCollectors = s.clayCollectors,
-                geodeCollectors = s.geodeCollectors,
-                obsidianCollectors = s.obsidianCollectors,
-                oreCollectors = s.oreCollectors,
-
-                clayCollectorsBuilding = 1
-            };
-
-            list.Add(newState3);
-        }
-
-        if (s.ore >= oreCollectorOreCost)
-        {
-            var newState4 = new State()
-            {
-                ore = s.ore - oreCollectorOreCost,
-                clay = s.clay,
-                obsidian = s.obsidian,
-                geode = s.geode,
-
-                oreCollectors = s.oreCollectors,
-                clayCollectors = s.clayCollectors,
-                geodeCollectors = s.geodeCollectors,
-                obsidianCollectors = s.obsidianCollectors,
-
-                oreCollectorsBuilding = 1
-
-
-            };
-
-            list.Add(newState4);
-        }
-
-        var newState5 = new State()
-        {
-            ore = s.ore,
-            clay = s.clay,
-            obsidian = s.obsidian,
-            geode = s.geode,
-
-            oreCollectors = s.oreCollectors,
-            clayCollectors = s.clayCollectors,
-            geodeCollectors = s.geodeCollectors,
-            obsidianCollectors = s.obsidianCollectors,
-        };
-
-        list.Add(newState5);
-
-
-        return list;
     }
 }
+
+
+
 
