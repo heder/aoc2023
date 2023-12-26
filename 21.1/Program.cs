@@ -1,230 +1,209 @@
-﻿
-abstract class Node
+﻿class Program
 {
-    public string name;
-    public long timestamp;
-    //public bool holding;
-    public bool output;
-    public List<Node> children = [];
-
-    public Queue<bool> outputQueue = new Queue<bool>();
-
-    public virtual void In(bool pulse, string name)
+    class WorldTile
     {
-        //holding = true;
-        timestamp = Program.timestamp;
-        Program.timestamp++;
-    }
+        private char _a;
+        private char _b;
 
-    public abstract void Out();
-}
-
-class BroadcasterNode : Node
-{
-    bool state;
-
-    public override void In(bool pulse, string name)
-    {
-        state = pulse;
-        base.In(pulse, name);
-
-        outputQueue.Enqueue(state);
-    }
-
-    public override void Out()
-    {
-        var send = outputQueue.Dequeue();
-
-        foreach (Node node in children)
+        public char Character
         {
-            if (send == true) Program.noHigh++;
-            if (send == false) Program.noLow++;
-
-            node.In(send, name);
-            Console.WriteLine($"{this.name} {state} {node.name}");
+            get
+            {
+                if (Toggle)
+                {
+                    return _a;
+                }
+                else
+                {
+                    return _b;
+                }
+            }
+            set
+            {
+                if (Toggle)
+                {
+                    _a = value;
+                }
+                else
+                {
+                    _b = value;
+                }
+            }
         }
 
-        //holding = false;
-    }
-}
 
-class OutputNode : Node
-{
-    //public bool state;
 
-    public override void In(bool pulse, string name)
-    {
-        if (pulse == false)
+        public char Character2
         {
-            Console.WriteLine("Single low pulse received");
-            Console.ReadKey();
+            set
+            {
+                if (Toggle)
+                {
+                    _b = value;
+                }
+                else
+                {
+                    _a = value;
+                }
+            }
         }
 
-        outputQueue.Enqueue(pulse);
-        base.In(pulse, name);
+
+        public int X { get; set; }
+        public int Y { get; set; }
     }
 
-    public override void Out()
-    {
-        var send = outputQueue.Dequeue();
-        Console.WriteLine($"{name} {send}");
-    }
-}
 
+    static int yMax;
+    static int xMax;
+    static WorldTile[,] world;
 
-class ConjunctionNode : Node
-{
-    public Dictionary<string, bool> inputs = [];
-    public override void In(bool pulse, string name)
-    {
-        inputs[name] = pulse;
-        base.In(pulse, name);
-
-
-        if (inputs.Values.All(f => f == true))
-        {
-            outputQueue.Enqueue(false);
-        }
-        else
-        {
-            outputQueue.Enqueue(true);
-        }
-    }
-
-    public override void Out()
-    {
-        var send = outputQueue.Dequeue();
-
-        foreach (Node node in children)
-        {
-            if (send == true) Program.noHigh++;
-            if (send == false) Program.noLow++;
-
-            node.In(send, name);
-            Console.WriteLine($"{this.name} {false} {node.name}");
-        }
-    }
-}
-
-
-class FlipFlopNode : Node
-{
-    public bool state;
-
-    public override void In(bool pulse, string name)
-    {
-        if (pulse == true)
-        {
-            return;
-        }
-
-        if (pulse == false)
-        {
-            state = !state;
-        }
-
-        base.In(pulse, name);
-
-
-        outputQueue.Enqueue(state);
-    }
-
-    public override void Out()
-    {
-        var send = outputQueue.Dequeue();
-
-        foreach (Node node in children)
-        {
-            if (send == true) Program.noHigh++;
-            if (send == false) Program.noLow++;
-
-            node.In(send, name);
-            Console.WriteLine($"{this.name} {false} {node.name}");
-        }
-    }
-}
-
-class Program
-{
-    static List<Node> nodes = [];
-    public static long timestamp = 0;
-
-    public static long noHigh = 0;
-    public static long noLow = 0;
-
+    static bool Toggle { get; set; } = false;
 
     static void Main()
     {
-        var lines = File.ReadAllLines("in.txt");
+        string[] lines = File.ReadAllLines("in.txt").ToArray();
 
-        for (long i = 0; i < lines.Length; i++)
+        yMax = lines.Length;
+        xMax = lines[0].Length;
+        world = new WorldTile[xMax, yMax];
+
+        for (int y = 0; y < yMax; y++)
         {
-            var s1 = lines[i].Split("->");
-            var node = s1[0].Trim();
-
-            if (node[0] == '%')
-                nodes.Add(new FlipFlopNode() { name = node[1..] });
-            else if (node[0] == '&')
-                nodes.Add(new ConjunctionNode() { name = node[1..] });
-            else if (node == "rx")
-                nodes.Add(new OutputNode() { name = node });
-            else
-                nodes.Add(new BroadcasterNode() { name = node });
+            for (int x = 0; x < xMax; x++)
+            {
+                world[x, y] = new WorldTile();
+                world[x, y].Character = lines[y][x];
+                world[x, y].X = x;
+                world[x, y].Y = y;
+            }
         }
 
-        for (long i = 0; i < lines.Length; i++)
-        {
-            var s1 = lines[i].Split("->");
-            var node = s1[0].Trim(' ', '%', '&');
-            var children = s1[1].Trim().Split(',').Select(f => f.Trim()).ToList();
+        Dump();
 
-            if (children[0] == "rx")
+        WorldTile startTile;
+
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
             {
-                nodes.Add(new OutputNode() { name = "rx" });
+                if (world[x, y].Character == 'S')
+                {
+                    startTile = world[x, y];
+                    startTile.Character = 'O';
+                    Toggle = !Toggle;
+                    startTile.Character = 'O';
+                    Toggle = !Toggle;
+                }
+            }
+        }
+
+        Dump();
+        int i = 0;
+        while (true)
+        {
+            // Copy world
+            for (int y = 0; y < yMax; y++)
+            {
+                for (int x = 0; x < xMax; x++)
+                {
+                    var tile = world[x, y];
+                    tile.Character2 = tile.Character;
+                }
             }
 
-            var n = nodes.FirstOrDefault(f => f.name == node);
-
-            if (n != null)
+            for (int y = 0; y < yMax; y++)
             {
-                foreach (var item in children)
+                for (int x = 0; x < xMax; x++)
                 {
-                    var c = nodes.First(f => f.name == item);
+                    var tile = world[x, y];
 
-                    if (c is ConjunctionNode x)
+                    if (tile.Character == 'O')
                     {
-                        x.inputs.Add(node, false);
+                        var destinations = GetPossibleTiles(tile);
+
+                        foreach (var item in destinations)
+                        {
+                            item.Character2 = 'O';
+                        }
+
+                        tile.Character = '.';
+                        tile.Character2 = '.';
+
                     }
-
-                    n.children.Add(c);
                 }
             }
+
+            Toggle = !Toggle;
+
+            i++;
+            Console.WriteLine(i);
+
+            if (i == 64) break;
         }
 
-
-        for (long i = 0; i < 1000; i++)
+        int sum = 0;
+        for (int y = 0; y < yMax; y++)
         {
-            noLow++; // Button
-
-            var b = nodes.First(f => f.name == "broadcaster");
-            b.In(false, "init");
-            while (true)
+            for (int x = 0; x < xMax; x++)
             {
-                var n = nodes.Where(f => f.outputQueue.Any() == true).OrderBy(f => f.timestamp).ToList();
-                foreach (var item in n)
+                var tile = world[x, y];
+
+                if (tile.Character == 'O')
                 {
-                    item.Out();
+                    sum++;
                 }
-
-                if (n.Count == 0)
-                    break;
-
             }
-
-            Console.WriteLine($"{Program.noLow} {Program.noHigh}");
-
         }
 
-        Console.WriteLine($"{(Program.noLow) * Program.noHigh}");
+        Console.WriteLine(sum);
+        Console.ReadKey();
+    }
+
+
+    static List<WorldTile> GetPossibleTiles(WorldTile p)
+    {
+        int x = p.X; int y = p.Y;
+        var retval = new List<WorldTile>();
+
+        if (y > 0 && world[x, y - 1].Character != '#')
+        {
+            retval.Add(world[x, y - 1]);
+        }
+
+        if (x > 0 && world[x - 1, y].Character != '#')
+        {
+            retval.Add(world[x - 1, y]);
+        }
+
+        if (x < xMax - 1 && world[x + 1, y].Character != '#')
+        {
+            retval.Add(world[x + 1, y]);
+        }
+
+        if (y < yMax - 1 && world[x, y + 1].Character != '#')
+        {
+            retval.Add(world[x, y + 1]);
+        }
+
+        return retval;
+    }
+
+
+    static void Dump()
+    {
+        for (int y = 0; y < yMax; y++)
+        {
+            for (int x = 0; x < xMax; x++)
+            {
+                Console.Write(world[x, y].Character);
+            }
+
+            Console.WriteLine();
+        }
+
+        Console.WriteLine();
     }
 }
+
+
